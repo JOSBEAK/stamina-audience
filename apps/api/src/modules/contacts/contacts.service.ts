@@ -1,0 +1,160 @@
+import { Injectable, NotFoundException } from '@nestjs/common';
+// import { SqsService } from '@ssut/nestjs-sqs';
+// import { v4 as uuidv4 } from 'uuid';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Contact } from '../../entities/contact.entity';
+import { CreateContactDto, UpdateContactDto } from './dto/contact.dto';
+
+interface FindAllParams {
+  role?: string;
+  company?: string;
+  location?: string;
+  industry?: string;
+  search?: string;
+  take?: number;
+  skip?: number;
+}
+
+@Injectable()
+export class ContactsService {
+  constructor(
+    @InjectRepository(Contact)
+    private readonly contactRepository: Repository<Contact> // private readonly sqsService: SqsService
+  ) {}
+
+  async queueCsvProcessing() {
+    console.log('SQS is disabled. CSV processing is not queued.');
+    // In a real app, you would get file info here
+    /*
+    const messageBody = {
+      fileName: 'contacts.csv',
+      userId: 'user-123',
+    };
+
+    await this.sqsService.send('csv-processing', {
+      id: uuidv4(),
+      body: JSON.stringify(messageBody),
+      delaySeconds: 0,
+    });
+    */
+
+    return { status: 'disabled' };
+  }
+
+  create(createContactDto: CreateContactDto): Promise<Contact> {
+    const contact = this.contactRepository.create(createContactDto);
+    console.log('contact', contact);
+    return this.contactRepository.save(contact);
+  }
+
+  createBatch(createContactDtos: CreateContactDto[]): Promise<Contact[]> {
+    const contacts = this.contactRepository.create(createContactDtos);
+    return this.contactRepository.save(contacts);
+  }
+
+  async findAll(params: FindAllParams): Promise<{
+    data: Contact[];
+    total: number;
+  }> {
+    const {
+      role,
+      company,
+      location,
+      industry,
+      search,
+      take = 10,
+      skip = 0,
+    } = params;
+    const query = this.contactRepository.createQueryBuilder('contact');
+
+    if (role) {
+      query.andWhere('contact.role IS NOT NULL AND contact.role != :empty', {
+        empty: '',
+      });
+    }
+    if (company) {
+      query.andWhere(
+        'contact.company IS NOT NULL AND contact.company != :empty',
+        { empty: '' }
+      );
+    }
+    if (location) {
+      query.andWhere('contact.location = :location', {
+        location,
+      });
+    }
+    if (industry) {
+      query.andWhere(
+        'contact.industry IS NOT NULL AND contact.industry != :empty',
+        { empty: '' }
+      );
+    }
+
+    if (search) {
+      const ftsQuery = search
+        .trim()
+        .split(' ')
+        .filter((term) => term)
+        .map((term) => `${term}:*`)
+        .join(' & ');
+
+      const partialMatchQuery = `%${search}%`;
+
+      query.andWhere(
+        `(
+          contact.search_vector @@ to_tsquery('english', :ftsQuery)
+          OR contact.name ILIKE :partialMatchQuery
+          OR contact.email ILIKE :partialMatchQuery
+          OR contact.company ILIKE :partialMatchQuery
+        )`,
+        { ftsQuery, partialMatchQuery }
+      );
+    }
+    // A real app would get brandId from auth and add:
+    // query.andWhere('contact.brandId = :brandId', { brandId });
+
+    query.orderBy('contact.createdAt', 'ASC').addOrderBy('contact.id', 'ASC');
+
+    query.skip(skip).take(take);
+
+    const [data, total] = await query.getManyAndCount();
+
+    return { data, total };
+  }
+
+  async findOne(id: string): Promise<Contact> {
+    const contact = await this.contactRepository.findOneBy({ id });
+    if (!contact) {
+      throw new NotFoundException(`Contact with ID "${id}" not found`);
+    }
+    return contact;
+  }
+
+  async update(
+    id: string,
+    updateContactDto: UpdateContactDto
+  ): Promise<Contact> {
+    const contact = await this.contactRepository.preload({
+      id: id,
+      ...updateContactDto,
+    });
+    if (!contact) {
+      throw new NotFoundException(`Contact with ID "${id}" not found`);
+    }
+    return this.contactRepository.save(contact);
+  }
+
+  async remove(id: string): Promise<void> {
+    const result = await this.contactRepository.delete(id);
+    if (result.affected === 0) {
+      throw new NotFoundException(`Contact with ID "${id}" not found`);
+    }
+  }
+
+  uploadCsv() {
+    console.log('CSV Upload endpoint called. Queueing is disabled.');
+    // Placeholder for async job logic
+    return { status: 'upload endpoint reached (queue disabled)' };
+  }
+}
