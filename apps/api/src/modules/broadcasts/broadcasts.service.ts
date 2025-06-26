@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 // import { SqsService } from '@ssut/nestjs-sqs';
@@ -14,6 +14,7 @@ import { CreateBroadcastDto } from '@stamina-project/types';
 
 @Injectable()
 export class BroadcastsService {
+  private readonly logger = new Logger(BroadcastsService.name);
   constructor(
     @InjectRepository(Broadcast)
     private readonly broadcastRepository: Repository<Broadcast>,
@@ -50,7 +51,7 @@ export class BroadcastsService {
       broadcast.recipients = recipients; // assign for the return object
     });
 
-    console.log('SQS is disabled. Fan-out to queue is skipped.');
+    this.logger.warn('SQS is disabled. Fan-out to queue is skipped.');
     // Explicit Fan-Out: After the transaction, queue a job for each recipient.
     /*
     for (const recipient of broadcast.recipients) {
@@ -69,11 +70,18 @@ export class BroadcastsService {
     return broadcast;
   }
 
-  findAll() {
+  async findAll(params: { take: number; skip: number }): Promise<{
+    data: Broadcast[];
+    total: number;
+  }> {
+    const { take, skip } = params;
     // In a real app, this would be paginated and include summary stats.
-    return this.broadcastRepository.find({
+    const [data, total] = await this.broadcastRepository.findAndCount({
       order: { createdAt: 'DESC' },
+      take,
+      skip,
     });
+    return { data, total };
   }
 
   async findOne(id: string) {

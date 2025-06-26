@@ -1,8 +1,7 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { Contact, Industry } from '@stamina-project/types';
 import { X } from 'lucide-react';
-import { addContact } from '../utils/api';
 import LocationInput from './LocationInput';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -15,47 +14,63 @@ import {
   SelectTrigger,
   SelectValue,
 } from './ui/select';
+import { ImageUpload } from './ImageUpload';
 
 interface AddManualFormProps {
   onClose: () => void;
-  onContactAdd: (contact: Contact) => void;
+  onContactSubmit: (contact: Partial<Contact>) => void;
+  initialData?: Contact | null;
 }
 
 type FormData = Omit<Contact, 'id' | 'createdAt' | 'updatedAt'>;
 
-const AddManualForm: React.FC<AddManualFormProps> = ({
+export function AddManualForm({
   onClose,
-  onContactAdd,
-}) => {
+  onContactSubmit,
+  initialData,
+}: AddManualFormProps) {
   const {
     register,
     handleSubmit,
     control,
     setValue,
+    reset,
     formState: { errors },
   } = useForm<FormData>();
 
-  const onSubmit = async (data: FormData) => {
-    try {
-      const newContact = await addContact(data);
-      onContactAdd(newContact);
-      onClose();
-    } catch (error) {
-      console.error(error);
-      // Here you could add user-facing error handling
+  useEffect(() => {
+    if (initialData) {
+      reset(initialData);
+    } else {
+      reset();
     }
+  }, [initialData, reset]);
+
+  const onSubmit = async (data: FormData) => {
+    onContactSubmit(data);
   };
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center">
       <div className="bg-white rounded-lg p-8 max-w-lg w-full">
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-semibold">Add Manually</h2>
+          <h2 className="text-xl font-semibold">{initialData ? 'Edit Contact' : 'Add Manually'}</h2>
           <Button variant="ghost" size="icon" onClick={onClose}>
             <X size={24} />
           </Button>
         </div>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-3">
+             <div className="space-y-1">
+            <Label>Avatar *</Label>
+            <ImageUpload
+              initialImageUrl={initialData?.avatar}
+              onUploadSuccess={(url) => setValue('avatar', url)}
+              {...register('avatar', { required: true })}
+            />
+            {errors.avatar && (
+              <p className="text-red-500 text-xs mt-1">This field is required.</p>
+            )}
+          </div>
           <div className="space-y-1">
             <Label htmlFor="name">Name *</Label>
             <Input id="name" {...register('name', { required: true })} />
@@ -79,11 +94,14 @@ const AddManualForm: React.FC<AddManualFormProps> = ({
           </div>
           <div className="space-y-1">
             <Label htmlFor="company">Company *</Label>
-            <Input id="company" {...register('company', { required: false })} />
+            <Input id="company" {...register('company', { required: true })} />
+            {errors.company && (
+              <p className="text-red-500 text-xs mt-1">This field is required.</p>
+            )}
           </div>
           <div className="space-y-1">
             <Label>Industry *</Label>
-            <Select onValueChange={(value) => setValue('industry', value as Industry)}>
+            <Select onValueChange={(value) => setValue('industry', value as Industry) } {...register('industry', { required: true })}>
               <SelectTrigger>
                 <SelectValue placeholder="Select an industry" />
               </SelectTrigger>
@@ -97,22 +115,20 @@ const AddManualForm: React.FC<AddManualFormProps> = ({
                 </SelectGroup>
               </SelectContent>
             </Select>
+            {errors.industry && (
+              <p className="text-red-500 text-xs mt-1">This field is required.</p>
+            )}
           </div>
           <LocationInput control={control} error={errors.location} />
-          <div className="space-y-1">
-            <Label htmlFor="avatar">Avatar URL *</Label>
-            <Input id="avatar" {...register('avatar', { required: false })} />
-          </div>
+         
           <div className="flex justify-end gap-4 pt-4">
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel
             </Button>
-            <Button type="submit">Add Person</Button>
+            <Button type="submit">{initialData ? 'Save Changes' : 'Add Person'}</Button>
           </div>
         </form>
       </div>
     </div>
   );
-};
-
-export default AddManualForm;
+}

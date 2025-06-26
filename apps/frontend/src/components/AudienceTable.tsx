@@ -1,8 +1,10 @@
 import type React from "react"
 import type { Contact } from "@stamina-project/types"
+import { Trash2, Edit } from "lucide-react"
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "./ui/table"
 import { Checkbox } from "./ui/checkbox"
 import { Skeleton } from "./ui/skeleton"
+import { Button } from "./ui/button"
 
 interface AudienceTableProps {
   contacts: Contact[]
@@ -10,16 +12,21 @@ interface AudienceTableProps {
   selectedContacts: string[]
   onSelectionChange: (contactId: string) => void
   onSelectAll: () => void
+  onDeleteSelected: () => void
+  onEditSelected: (contactId: string) => void
 }
 
-const AudienceTable: React.FC<AudienceTableProps> = ({
+export function AudienceTable({
   contacts,
   loading,
   selectedContacts,
   onSelectionChange,
   onSelectAll,
-}) => {
+  onDeleteSelected,
+  onEditSelected,
+}: AudienceTableProps) {
   const isAllSelected = contacts.length > 0 && selectedContacts.length === contacts.length
+  const numSelected = selectedContacts.length
 
   return (
     <div className="overflow-x-auto">
@@ -29,11 +36,37 @@ const AudienceTable: React.FC<AudienceTableProps> = ({
             <TableHead className="w-12">
               <Checkbox checked={isAllSelected} onCheckedChange={onSelectAll} aria-label="Select all" />
             </TableHead>
-            <TableHead className="min-w-[280px]">Name</TableHead>
-            <TableHead className="min-w-[120px]">Role</TableHead>
-            <TableHead className="min-w-[140px]">Company</TableHead>
-            <TableHead className="min-w-[120px]">Industry</TableHead>
-            <TableHead className="min-w-[120px]">Location</TableHead>
+            {numSelected > 0 ? (
+              <TableHead colSpan={5}>
+                <div className="flex items-center gap-4 w-full justify-between">
+                  <span className="text-sm font-medium">{numSelected} selected</span>
+                  <div className="flex items-center gap-2">
+                  {numSelected === 1 && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => onEditSelected(selectedContacts[0])}
+                    >
+                      <Edit className="mr-2 h-4 w-4" />
+                      Edit
+                    </Button>
+                  )}
+                  <Button variant="destructive" size="sm" onClick={onDeleteSelected}>
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Delete
+                  </Button>
+                  </div>
+                </div>
+              </TableHead>
+            ) : (
+              <>
+                <TableHead className="min-w-[280px]">Name</TableHead>
+                <TableHead className="min-w-[120px]">Role</TableHead>
+                <TableHead className="min-w-[140px]">Company</TableHead>
+                <TableHead className="min-w-[120px]">Industry</TableHead>
+                <TableHead className="min-w-[120px]">Location</TableHead>
+              </>
+            )}
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -103,5 +136,3 @@ const AudienceTable: React.FC<AudienceTableProps> = ({
     </div>
   )
 }
-
-export default AudienceTable

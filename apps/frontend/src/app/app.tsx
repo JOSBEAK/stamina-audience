@@ -1,6 +1,4 @@
-import { Route, Routes, Link } from 'react-router-dom';
-import ContactsPage from '../pages/contacts';
-import BroadcastsPage from '../pages/broadcasts';
+import { Link, Outlet } from 'react-router-dom';
 
 export function App() {
   return (
@@ -20,25 +18,8 @@ export function App() {
       </div>
 
       <main className="container mx-auto p-4">
-        <Routes>
-          <Route
-            path="/"
-            element={
-              <div>
-                <h1 className="text-3xl font-bold">Welcome!</h1>
-                <p className="mt-2">
-                  Select a page from the navigation to get started.
-                </p>
-              </div>
-            }
-          />
-          <Route path="/contacts" element={<ContactsPage />} />
-          <Route path="/broadcasts" element={<BroadcastsPage />} />
-        </Routes>
+        <Outlet />
       </main>
-
     </div>
   );
 }
-
-export default App;

@@ -19,6 +19,4 @@ export function BroadcastsPage() {
       </div>
     </div>
   );
-}
-
-export default BroadcastsPage; 
+} 

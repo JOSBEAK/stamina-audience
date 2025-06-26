@@ -46,10 +46,15 @@ export class Contact {
 
   // --- All other fields are nullable, as requested ---
 
-  @Column({ type: 'uuid', nullable: true })
+  @Column({ type: 'uuid', nullable: true, name: 'brand_id' })
   brandId: string;
 
-  @Column('varchar', { array: true, default: [], nullable: true })
+  @Column('varchar', {
+    array: true,
+    default: [],
+    nullable: true,
+    name: 'crm_list_id',
+  })
   crmListId: string[];
 
   @Column('varchar', { array: true, default: [], nullable: true })
@@ -58,10 +63,15 @@ export class Contact {
   @Column({ type: 'int', default: 0, nullable: true })
   strength?: number;
 
-  @Column({ type: 'boolean', default: false, nullable: true })
+  @Column({
+    type: 'boolean',
+    default: false,
+    nullable: true,
+    name: 'is_company',
+  })
   isCompany?: boolean;
 
-  @Column({ type: 'varchar', length: 255, nullable: true })
+  @Column({ type: 'varchar', length: 255, nullable: true, name: 'last_name' })
   lastName?: string;
 
   @Column({ type: 'varchar', length: 20, nullable: true })
@@ -70,12 +80,13 @@ export class Contact {
   @Column({ type: 'jsonb', default: {}, nullable: true })
   status: Record<string, string>;
 
-  @Column({ type: 'bool', nullable: true })
+  @Column({ type: 'bool', nullable: true, name: 'is_tracked' })
   isTracked?: boolean;
 
   @Column({
     type: 'timestamp',
     nullable: true,
+    name: 'last_interaction_at',
   })
   lastInteractionAt?: Date;
 
@@ -85,10 +96,10 @@ export class Contact {
   @Column({ type: 'varchar', nullable: true, length: 50 })
   source?: string;
 
-  @Column({ type: 'jsonb', default: [], nullable: true })
+  @Column({ type: 'jsonb', default: [], nullable: true, name: 'related_from' })
   relatedFrom?: RelatedFrom;
 
-  @Column({ type: 'varchar', nullable: true })
+  @Column({ type: 'varchar', nullable: true, name: 'company_role' })
   companyRole?: string;
 
   @Column({ type: 'varchar', nullable: true })
@@ -97,49 +108,89 @@ export class Contact {
   @Column({ type: 'int', nullable: true })
   rating?: number;
 
-  @Column({ type: 'varchar', nullable: true })
+  @Column({ type: 'varchar', nullable: true, name: 'contract_value' })
   contractValue?: string;
 
-  @Column({ type: 'varchar', nullable: true, default: '$' })
+  @Column({
+    type: 'varchar',
+    nullable: true,
+    default: '$',
+    name: 'contract_currency',
+  })
   contractCurrency?: string;
 
-  @Column({ type: 'varchar', nullable: true })
+  @Column({ type: 'varchar', nullable: true, name: 'email_bounce_score' })
   emailBounceScore?: string;
 
   @Column({ type: 'text', nullable: true })
   icebreaker?: string;
 
-  @Column({ type: 'varchar', nullable: true })
+  @Column({ type: 'varchar', nullable: true, name: 'linkedin_name' })
   linkedInName?: string;
 
-  @Column({ type: 'varchar', length: 500, nullable: true })
+  @Column({
+    type: 'varchar',
+    length: 500,
+    nullable: true,
+    name: 'linkedin_provider_id',
+  })
   linkedInProviderId?: string;
 
-  @Column({ type: 'varchar', length: 100, nullable: true })
+  @Column({
+    type: 'varchar',
+    length: 100,
+    nullable: true,
+    name: 'linkedin_company_url',
+  })
   linkedInCompanyUrl: string;
 
-  @Column({ type: 'varchar', length: 100, nullable: true })
+  @Column({
+    type: 'varchar',
+    length: 100,
+    nullable: true,
+    name: 'facebook_name',
+  })
   facebookName?: string;
 
-  @Column({ type: 'varchar', length: 50, nullable: true })
+  @Column({ type: 'varchar', length: 50, nullable: true, name: 'youtube_name' })
   youtubeName?: string;
 
-  @Column({ type: 'varchar', length: 50, nullable: true })
+  @Column({
+    type: 'varchar',
+    length: 50,
+    nullable: true,
+    name: 'instagram_name',
+  })
   instagramName?: string;
 
-  @Column({ type: 'varchar', length: 50, nullable: true })
+  @Column({
+    type: 'varchar',
+    length: 50,
+    nullable: true,
+    name: 'telegram_name',
+  })
   telegramName?: string;
 
-  @Column({ type: 'varchar', length: 50, nullable: true })
+  @Column({
+    type: 'varchar',
+    length: 50,
+    nullable: true,
+    name: 'whatsapp_name',
+  })
   whatsappName?: string;
 
-  @Column({ type: 'varchar', length: 100, nullable: true })
+  @Column({ type: 'varchar', length: 100, nullable: true, name: 'x_name' })
   xName?: string;
 
-  @Column({ type: 'varchar', length: 100, nullable: true })
+  @Column({
+    type: 'varchar',
+    length: 100,
+    nullable: true,
+    name: 'x_company_name',
+  })
   xCompanyName?: string;
 
-  @Column({ type: 'varchar', length: 50, nullable: true })
+  @Column({ type: 'varchar', length: 50, nullable: true, name: 'website_url' })
   websiteUrl?: string;
 
   @Column('uuid', { array: true, default: [], nullable: true })
@@ -156,6 +207,7 @@ export class Contact {
     type: 'jsonb',
     nullable: true,
     default: {},
+    name: 'linkedin_meta',
   })
   linkedInMeta: Record<string, any>;
 

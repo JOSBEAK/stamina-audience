@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 // import { SqsService } from '@ssut/nestjs-sqs';
 // import { v4 as uuidv4 } from 'uuid';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -18,13 +18,14 @@ interface FindAllParams {
 
 @Injectable()
 export class ContactsService {
+  private readonly logger = new Logger(ContactsService.name);
   constructor(
     @InjectRepository(Contact)
     private readonly contactRepository: Repository<Contact> // private readonly sqsService: SqsService
   ) {}
 
   async queueCsvProcessing() {
-    console.log('SQS is disabled. CSV processing is not queued.');
+    this.logger.warn('SQS is disabled. CSV processing is not queued.');
     // In a real app, you would get file info here
     /*
     const messageBody = {
@@ -44,7 +45,7 @@ export class ContactsService {
 
   create(createContactDto: CreateContactDto): Promise<Contact> {
     const contact = this.contactRepository.create(createContactDto);
-    console.log('contact', contact);
+    this.logger.log(`Creating contact for email: ${createContactDto.email}`);
     return this.contactRepository.save(contact);
   }
 
@@ -152,8 +153,16 @@ export class ContactsService {
     }
   }
 
+  async removeBatch(ids: string[]): Promise<void> {
+    const result = await this.contactRepository.delete(ids);
+    if (result.affected === 0) {
+      throw new NotFoundException(`No contacts found with the provided IDs.`);
+    }
+    this.logger.log(`Batch deleted ${result.affected} contacts.`);
+  }
+
   uploadCsv() {
-    console.log('CSV Upload endpoint called. Queueing is disabled.');
+    this.logger.warn('CSV Upload endpoint called. Queueing is disabled.');
     // Placeholder for async job logic
     return { status: 'upload endpoint reached (queue disabled)' };
   }

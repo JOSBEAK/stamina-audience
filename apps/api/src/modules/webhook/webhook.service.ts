@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { SendGridEvent } from '@stamina-project/types';
@@ -17,6 +17,8 @@ interface SendGridCustomArgs {
 
 @Injectable()
 export class WebhookService {
+  private readonly logger = new Logger(WebhookService.name);
+
   constructor(
     @InjectRepository(BroadcastRecipient)
     private readonly recipientRepository: Repository<BroadcastRecipient>,
@@ -29,7 +31,10 @@ export class WebhookService {
     for (const event of events) {
       const customArgs = (event as any).custom_args as SendGridCustomArgs;
       if (!customArgs?.broadcast_recipient_id) {
-        console.warn('Skipping event with no broadcast_recipient_id', event);
+        this.logger.warn(
+          'Skipping event with no broadcast_recipient_id',
+          event
+        );
         continue;
       }
 
@@ -39,7 +44,7 @@ export class WebhookService {
       });
 
       if (!recipient) {
-        console.warn(
+        this.logger.warn(
           'Recipient not found for ID:',
           customArgs.broadcast_recipient_id
         );

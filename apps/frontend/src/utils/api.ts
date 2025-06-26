@@ -1,37 +1,14 @@
 import { Contact } from '@stamina-project/types';
+import axios from 'axios';
 
-const API_BASE_URL = '/api';
+const apiClient = axios.create({
+  baseURL: '/api',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
 
-// A generic fetch wrapper
-const apiFetch = async (endpoint: string, options: RequestInit = {}) => {
-  const { headers, ...restOptions } = options;
-
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-    headers: {
-      'Content-Type': 'application/json',
-      ...headers,
-    },
-    ...restOptions,
-  });
-
-  if (!response.ok) {
-    // In a real app, you'd have more robust error handling
-    const errorBody = await response.text();
-    throw new Error(
-      `API Error: ${response.status} ${response.statusText} - ${errorBody}`
-    );
-  }
-
-  // Handle cases where the response body might be empty (e.g., 204 No Content)
-  const responseText = await response.text();
-  try {
-    return JSON.parse(responseText);
-  } catch (e) {
-    return responseText; // Return text if it's not valid JSON
-  }
-};
-
-interface GetContactsParams {
+export interface GetContactsParams {
   search?: string;
   role?: boolean;
   company?: boolean;
@@ -47,45 +24,48 @@ export interface ContactsResponse {
 
 // --- Contact API Functions ---
 
-export const getContacts = (
+export const getContacts = async (
   params: GetContactsParams = {}
 ): Promise<ContactsResponse> => {
-  const searchParams = new URLSearchParams();
-  if (params.search) {
-    searchParams.append('search', params.search);
-  }
-  if (params.role) {
-    searchParams.append('role', 'true');
-  }
-  if (params.company) {
-    searchParams.append('company', 'true');
-  }
-  if (params.industry) {
-    searchParams.append('industry', 'true');
-  }
-  if (params.page) {
-    searchParams.append('page', String(params.page));
-  }
-  if (params.limit) {
-    searchParams.append('limit', String(params.limit));
-  }
-
-  const queryString = searchParams.toString();
-  return apiFetch(queryString ? `/contacts?${queryString}` : '/contacts');
+  const { data } = await apiClient.get('/contacts', { params });
+  return data;
 };
 
-export const addContact = (contactData: Partial<Contact>): Promise<Contact> => {
-  return apiFetch('/contacts', {
-    method: 'POST',
-    body: JSON.stringify(contactData),
-  });
+export const addContact = async (
+  contactData: Partial<Contact>
+): Promise<Contact> => {
+  const { data } = await apiClient.post('/contacts', contactData);
+  return data;
 };
 
-export const addContactsBatch = (
+export const addContactsBatch = async (
   contactsData: Partial<Contact>[]
 ): Promise<Contact[]> => {
-  return apiFetch('/contacts/batch', {
-    method: 'POST',
-    body: JSON.stringify(contactsData),
+  const { data } = await apiClient.post('/contacts/batch', contactsData);
+  return data;
+};
+
+export const deleteContacts = async (contactIds: string[]): Promise<void> => {
+  await apiClient.delete('/contacts/batch', { data: { ids: contactIds } });
+};
+
+export const updateContact = async (
+  id: string,
+  contactData: Partial<Contact>
+): Promise<Contact> => {
+  const { data } = await apiClient.patch(`/contacts/${id}`, contactData);
+  return data;
+};
+
+// --- Upload API Functions ---
+
+export const getPresignedUrl = async (
+  fileName: string,
+  fileType: string
+): Promise<{ presignedUrl: string; publicUrl: string }> => {
+  const { data } = await apiClient.post('/uploads/presigned-url', {
+    fileName,
+    fileType,
   });
+  return data;
 };

@@ -9,34 +9,72 @@ import {
   Query,
   UsePipes,
   ValidationPipe,
+  Logger,
 } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiQuery } from '@nestjs/swagger';
 import { ContactsService } from './contacts.service';
 import { CreateContactDto, UpdateContactDto } from './dto/contact.dto';
+import { Contact } from '../../entities/contact.entity';
 
+@ApiTags('Contacts')
 @Controller('contacts')
 export class ContactsController {
+  private readonly logger = new Logger(ContactsController.name);
   constructor(private readonly contactsService: ContactsService) {}
 
   @Post()
   @UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
+  @ApiOperation({ summary: 'Create a new contact' })
+  @ApiResponse({
+    status: 201,
+    description: 'The contact has been successfully created.',
+    type: Contact,
+  })
+  @ApiResponse({ status: 400, description: 'Bad Request.' })
   create(@Body() createContactDto: CreateContactDto) {
-    console.log('createContactDto', createContactDto);
+    this.logger.log(
+      `Creating new contact for email: ${createContactDto.email}`
+    );
     return this.contactsService.create(createContactDto);
   }
 
   @Post('batch')
   @UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
+  @ApiOperation({ summary: 'Create multiple contacts in a batch' })
+  @ApiResponse({
+    status: 201,
+    description: 'The contacts have been successfully created.',
+  })
+  @ApiResponse({ status: 400, description: 'Bad Request.' })
   createBatch(@Body() createContactDtos: CreateContactDto[]) {
     return this.contactsService.createBatch(createContactDtos);
   }
 
   @Post('upload')
+  @ApiOperation({ summary: 'Upload contacts via CSV' })
+  @ApiResponse({
+    status: 202,
+    description: 'The CSV upload process has been initiated.',
+  })
   uploadCsv() {
     // This will be handled by the service, placeholder for now
     return this.contactsService.uploadCsv();
   }
 
   @Get()
+  @ApiOperation({ summary: 'Find all contacts' })
+  @ApiQuery({ name: 'role', required: false, type: String })
+  @ApiQuery({ name: 'company', required: false, type: String })
+  @ApiQuery({ name: 'location', required: false, type: String })
+  @ApiQuery({ name: 'industry', required: false, type: String })
+  @ApiQuery({ name: 'search', required: false, type: String })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  @ApiResponse({
+    status: 200,
+    description: 'A list of contacts.',
+    type: [Contact],
+  })
   findAll(
     @Query('role') role?: string,
     @Query('company') company?: string,
@@ -61,16 +99,44 @@ export class ContactsController {
   }
 
   @Get(':id')
+  @ApiOperation({ summary: 'Find a contact by ID' })
+  @ApiResponse({
+    status: 200,
+    description: 'The found contact.',
+    type: Contact,
+  })
+  @ApiResponse({ status: 404, description: 'Contact not found.' })
   findOne(@Param('id') id: string) {
     return this.contactsService.findOne(id);
   }
 
   @Patch(':id')
+  @ApiOperation({ summary: 'Update a contact' })
+  @ApiResponse({
+    status: 200,
+    description: 'The updated contact.',
+    type: Contact,
+  })
+  @ApiResponse({ status: 404, description: 'Contact not found.' })
   update(@Param('id') id: string, @Body() updateContactDto: UpdateContactDto) {
     return this.contactsService.update(id, updateContactDto);
   }
 
+  @Delete('batch')
+  @ApiOperation({ summary: 'Delete multiple contacts in a batch' })
+  @ApiResponse({
+    status: 200,
+    description: 'The contacts have been successfully deleted.',
+  })
+  @ApiResponse({ status: 400, description: 'Bad Request.' })
+  removeBatch(@Body('ids') ids: string[]) {
+    return this.contactsService.removeBatch(ids);
+  }
+
   @Delete(':id')
+  @ApiOperation({ summary: 'Delete a contact' })
+  @ApiResponse({ status: 200, description: 'Contact successfully deleted.' })
+  @ApiResponse({ status: 404, description: 'Contact not found.' })
   remove(@Param('id') id: string) {
     return this.contactsService.remove(id);
   }

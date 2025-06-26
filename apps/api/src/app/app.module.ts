@@ -9,6 +9,7 @@ import { AppService } from './app.service';
 import { ContactsModule } from '../modules/contacts/contacts.module';
 import { BroadcastsModule } from '../modules/broadcasts/broadcasts.module';
 import { WebhookModule } from '../modules/webhook/webhook.module';
+import { UploadsModule } from '../modules/uploads/uploads.module';
 // import { QueueModule } from '../modules/queue/queue.module'; // Temporarily disabled
 
 import { Contact } from '../entities/contact.entity';
@@ -62,6 +63,7 @@ import { SegmentMember } from '../entities/segment-member.entity';
     ContactsModule,
     BroadcastsModule,
     WebhookModule,
+    UploadsModule,
     // QueueModule, // Temporarily disabled
   ],
   controllers: [AppController],

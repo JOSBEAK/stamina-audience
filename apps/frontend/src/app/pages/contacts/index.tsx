@@ -1,77 +1,58 @@
-import React, { useEffect, useState, useCallback, useRef } from 'react';
-import AudienceTable from '@/components/AudienceTable';
-import { Plus, Users, ChevronLeft, ChevronRight } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { Plus, Users, ChevronLeft, ChevronRight, AlertTriangle } from 'lucide-react';
 import { Contact } from '@stamina-project/types';
+import {
+  useContacts,
+  useAddContactsBatch,
+  useDeleteContacts,
+  useUpdateContact,
+} from '@/hooks/useContacts';
+import { AudienceTable } from '@/components/AudienceTable';
 import AddAudienceModal from '@/components/AddAudienceModal';
-import AddManualForm from '@/components/AddManualForm';
+import { AddManualForm } from '@/components/AddManualForm';
 import UploadCsvModal from '@/components/UploadCsvModal';
 import FieldMapping from '@/components/FieldMapping';
-import { getContacts, addContactsBatch } from '@/utils/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { useDebounce } from '@/hooks/useDebounce';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
-const ContactsPage = () => {
-  const [contacts, setContacts] = useState<Contact[]>([]);
-  const [loading, setLoading] = useState(true);
+export function ContactsPage() {
   const [view, setView] = useState('list'); // 'list', 'add_selection', 'add_manual', 'upload_csv', 'field_mapping'
-  
   const [csvData, setCsvData] = useState<any[]>([]);
-  const [totalContacts, setTotalContacts] = useState(0);
   const [csvHeaders, setCsvHeaders] = useState<string[]>([]);
-  // const [filters, setFilters] = useState({
-  //   role: false,
-  //   company: false,
-  //   industry: false,
-  // });
   const [selectedContacts, setSelectedContacts] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const searchInputRef = useRef<HTMLInputElement>(null);
-  
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(0);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [editingContact, setEditingContact] = useState<Contact | null>(null);
   const limit = 10;
+  
+  const debouncedSearchQuery = useDebounce(searchQuery, 500);
 
-  useEffect(() => {
-    const down = (e: KeyboardEvent) => {
-      if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
-        e.preventDefault();
-        searchInputRef.current?.focus();
-      }
-    };
-    document.addEventListener('keydown', down);
-    return () => document.removeEventListener('keydown', down);
-  }, []);
+  const { data, isLoading } = useContacts({
+    search: debouncedSearchQuery,
+    page: currentPage,
+    limit,
+  });
 
-  const fetchContacts = useCallback(
-    async (search: string, page: number) => {
-      try {
-        setLoading(true);
-        const { data, total } = await getContacts({
-          search,
-          page,
-          limit,
-        });
-        setContacts(data);
-        setTotalPages(Math.ceil(total / limit));
-        setTotalContacts(total);
-      } catch (error) {
-        console.error('Failed to fetch contacts:', error);
-      } finally {
-        setLoading(false);
-      }
-    },
-    []
-  );
+  const addContactsMutation = useAddContactsBatch();
+  const deleteContactsMutation = useDeleteContacts();
+  const updateContactMutation = useUpdateContact();
 
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      fetchContacts(searchQuery, currentPage);
-    }, 500); // 500ms debounce delay
-
-    return () => {
-      clearTimeout(handler);
-    };
-  }, [searchQuery, fetchContacts, currentPage]);
+  const contacts = data?.data ?? [];
+  const totalContacts = data?.total ?? 0;
+  const totalPages = Math.ceil(totalContacts / limit);
 
   const handleNextPage = () => {
     if (currentPage < totalPages) {
@@ -85,10 +66,6 @@ const ContactsPage = () => {
     }
   };
 
-  const handleContactAdded = (newContact: Contact) => {
-    setContacts((prevContacts) => [newContact, ...prevContacts]);
-  };
-
   const handleDataParsed = (data: any[], headers: string[]) => {
     setCsvData(data);
     setCsvHeaders(headers);
@@ -96,21 +73,14 @@ const ContactsPage = () => {
   };
 
   const handleMappingConfirm = async (mappedData: Partial<Contact>[]) => {
-    try {
-      const newContacts = await addContactsBatch(mappedData);
-      setContacts(prev => [...newContacts, ...prev]);
-      setView('list');
-
-    } catch (error) {
-      console.error('Batch upload failed:', error);
-      // Handle error display to user
-    }
-  }
+    await addContactsMutation.mutateAsync(mappedData);
+    setView('list');
+  };
 
   const handleSelectionChange = (contactId: string) => {
-    setSelectedContacts(prev =>
+    setSelectedContacts((prev) =>
       prev.includes(contactId)
-        ? prev.filter(id => id !== contactId)
+        ? prev.filter((id) => id !== contactId)
         : [...prev, contactId]
     );
   };
@@ -119,8 +89,42 @@ const ContactsPage = () => {
     if (selectedContacts.length === contacts.length) {
       setSelectedContacts([]);
     } else {
-      setSelectedContacts(contacts.map(c => c.id));
+      setSelectedContacts(contacts.map((c) => c.id));
     }
+  };
+
+  const handleEditSelected = (contactId: string) => {
+    const contactToEdit = contacts.find((c) => c.id === contactId);
+    if (contactToEdit) {
+      setEditingContact(contactToEdit);
+      setView('add_manual');
+    }
+  };
+
+  const handleCloseForm = () => {
+    setEditingContact(null);
+    setView('list');
+  };
+
+  const handleFormSubmit = async (contactData: Partial<Contact>) => {
+    if (editingContact) {
+      await updateContactMutation.mutateAsync({
+        id: editingContact.id,
+        contactData,
+      });
+    } else {
+      await addContactsMutation.mutateAsync([contactData]);
+    }
+    handleCloseForm();
+  };
+
+  const handleDeleteSelected = async () => {
+    await deleteContactsMutation.mutateAsync(selectedContacts, {
+      onSuccess: () => {
+        setSelectedContacts([]);
+        setIsDeleteDialogOpen(false);
+      },
+    });
   };
 
   return (
@@ -139,7 +143,9 @@ const ContactsPage = () => {
       <div className="flex justify-between items-center mb-6">
         <div className="flex items-center">
           <h1 className="text-2xl font-semibold">Audience List</h1>
-          <span className="text-sm text-gray-500 ml-2 border border-gray-200 px-2 py-1 rounded-full">{totalContacts} people</span>
+          <span className="text-sm text-gray-500 ml-2 border border-gray-200 px-2 py-1 rounded-full">
+            {totalContacts} people
+          </span>
         </div>
         <div className="flex items-center space-x-2">
           <div className="relative w-64">
@@ -154,45 +160,18 @@ const ContactsPage = () => {
               ⌘K
             </div>
           </div>
-          {/* <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="px-3">
-                <ListFilter size={18} />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-56">
-              <DropdownMenuLabel>Filter by</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuCheckboxItem
-                checked={filters.role}
-                onCheckedChange={(checked) => setFilters(prev => ({ ...prev, role: !!checked }))}
-              >
-                Role
-              </DropdownMenuCheckboxItem>
-              <DropdownMenuCheckboxItem
-                checked={filters.company}
-                onCheckedChange={(checked) => setFilters(prev => ({ ...prev, company: !!checked }))}
-              >
-                Company
-              </DropdownMenuCheckboxItem>
-              <DropdownMenuCheckboxItem
-                checked={filters.industry}
-                onCheckedChange={(checked) => setFilters(prev => ({ ...prev, industry: !!checked }))}
-              >
-                Industry
-              </DropdownMenuCheckboxItem>
-            </DropdownMenuContent>
-          </DropdownMenu> */}
         </div>
       </div>
-      
+
       <div className="border rounded-lg overflow-hidden">
-        <AudienceTable 
-          contacts={contacts} 
-          loading={loading}
+        <AudienceTable
+          contacts={contacts}
+          loading={isLoading}
           selectedContacts={selectedContacts}
           onSelectionChange={handleSelectionChange}
           onSelectAll={handleSelectAll}
+          onDeleteSelected={() => setIsDeleteDialogOpen(true)}
+          onEditSelected={handleEditSelected}
         />
       </div>
 
@@ -228,8 +207,9 @@ const ContactsPage = () => {
 
       {view === 'add_manual' && (
         <AddManualForm
-          onClose={() => setView('list')}
-          onContactAdd={handleContactAdded}
+          onClose={handleCloseForm}
+          onContactSubmit={handleFormSubmit}
+          initialData={editingContact}
         />
       )}
 
@@ -248,8 +228,31 @@ const ContactsPage = () => {
           csvHeaders={csvHeaders}
         />
       )}
+
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="text-destructive" />
+                Are you sure you want to delete?
+              </div>
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              You are about to delete {selectedContacts.length} contact(s). This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteSelected}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
-};
-
-export default ContactsPage; 
+} 
