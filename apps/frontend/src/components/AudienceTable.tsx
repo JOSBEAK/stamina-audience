@@ -74,11 +74,11 @@ export function AudienceTable({
           </div>
         ) : (
           <>
-            <div className="px-4 py-3 font-medium text-muted-foreground">Name</div>
-            <div className="px-4 py-3 font-medium text-muted-foreground">Role</div>
-            <div className="px-4 py-3 font-medium text-muted-foreground">Company</div>
-            <div className="px-4 py-3 font-medium text-muted-foreground">Industry</div>
-            <div className="px-4 py-3 font-medium text-muted-foreground">Location</div>
+            <div className="px-4 py-3 font-medium text-primary">Name</div>
+            <div className="px-4 py-3 font-medium text-primary">Role</div>
+            <div className="px-4 py-3 font-medium text-primary">Company</div>
+            <div className="px-4 py-3 font-medium text-primary">Industry</div>
+            <div className="px-4 py-3 font-medium text-primary">Location</div>
           </>
         )}
       </div>

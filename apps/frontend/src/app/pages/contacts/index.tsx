@@ -4,7 +4,6 @@ import {
   Users,
   ChevronLeft,
   ChevronRight,
-  AlertTriangle,
   X,
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -42,6 +41,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Combobox } from '@/components/ui/combobox';
+import { ContactFilters } from '@/components/ContactFilters';
 
 type CsvRow = Record<string, string>;
 
@@ -349,7 +349,7 @@ export function ContactsPage() {
       <div className="flex justify-between items-center mb-6">
         <div className="flex items-center">
           <h1 className="text-2xl font-semibold">Audience List</h1>
-          <span className="text-sm text-gray-500 ml-2 border border-gray-200 px-2 py-1 rounded-full">
+          <span className="text-sm text-muted-foreground ml-2 border border-border px-2 py-1 rounded-lg">
             {totalContacts} people
           </span>
         </div>
@@ -376,166 +376,36 @@ export function ContactsPage() {
       </div>
 
       {showFilters && (
-        <div className="flex items-center justify-between">
-          <div className="flex items-center justify-start space-x-8 mb-4 p-4 bg-gray-50 rounded-lg w-full">
-            <div className="flex flex-col space-y-2">
-              <label className="text-sm font-medium">Sort by</label>
-              <div className="flex items-center space-x-1 relative">
-                <Select
-                  value={sort}
-                  onValueChange={(value) => setSort(value || 'createdAt:desc')}
-                >
-                  <SelectTrigger className="w-32">
-                    <SelectValue placeholder="Sort by" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="createdAt:desc">Newest</SelectItem>
-                    <SelectItem value="createdAt:asc">Oldest</SelectItem>
-                    <SelectItem value="name:asc">Name (A-Z)</SelectItem>
-                    <SelectItem value="name:desc">Name (Z-A)</SelectItem>
-                  </SelectContent>
-                </Select>
-                {sort !== 'createdAt:desc' && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-4 w-4 absolute -right-2 top-0 -translate-y-1/2 bg-red-500 rounded-full"
-                    onClick={() => setSort('createdAt:desc')}
-                  >
-                    <X className="h-3 w-3 text-white" />
-                  </Button>
-                )}
-              </div>
-            </div>
-            <div className="flex flex-col space-y-2">
-              <label className="text-sm font-medium">Role</label>
-              <div className="flex items-center space-x-1 relative">
-                <Combobox
-                  value={role}
-                  onChange={setRole}
-                  onInputChange={setRoleSearch}
-                  options={roleOptions}
-                  placeholder="Select role..."
-                  searchPlaceholder="Search roles..."
-                  emptyPlaceholder={
-                    roleSearch.length > 0
-                      ? 'No roles found.'
-                      : 'Roles will show up here'
-                  }
-                  loading={isRoleLoading}
-                />
-                {role && (
-                  <Button
-                    variant="default"
-                    size="icon"
-                    className="h-4 w-4 absolute -right-2 top-0 -translate-y-1/2 bg-red-500 rounded-full"
-                    onClick={() => setRole('')}
-                  >
-                    <X className="h-3 w-3" />
-                  </Button>
-                )}
-              </div>
-            </div>
-            <div className="flex flex-col space-y-2">
-              <label className="text-sm font-medium">Industry</label>
-              <div className="flex items-center space-x-1 relative">
-                <Combobox
-                  value={industry}
-                  onChange={setIndustry}
-                  onInputChange={setIndustrySearch}
-                  options={industryOptions}
-                  placeholder="Select industry..."
-                  searchPlaceholder="Search industries..."
-                  emptyPlaceholder={
-                    industrySearch
-                      ? 'No industries found.'
-                      : 'Industries will show up here'
-                  }
-                  loading={isIndustryLoading}
-                />
-                {industry && (
-                  <Button
-                    variant="default"
-                    size="icon"
-                    className="h-4 w-4 absolute -right-2 top-0 -translate-y-1/2 bg-red-500 rounded-full"
-                    onClick={() => setIndustry('')}
-                  >
-                    <X className="h-3 w-3" />
-                  </Button>
-                )}
-              </div>
-            </div>
-            <div className="flex flex-col space-y-2">
-              <label className="text-sm font-medium">Company</label>
-              <div className="flex items-center space-x-1 relative">
-                <Combobox
-                  value={company}
-                  onChange={setCompany}
-                  onInputChange={setCompanySearch}
-                  options={companyOptions}
-                  placeholder="Select company..."
-                  searchPlaceholder="Search companies..."
-                  emptyPlaceholder={
-                    companySearch.length > 0
-                      ? 'No companies found.'
-                      : 'Companies will show up here'
-                  }
-                  loading={isCompanyLoading}
-                />
-                {company && (
-                  <Button
-                    variant="default"
-                    size="icon"
-                    className="h-4 w-4 absolute -right-2 top-0 -translate-y-1/2 bg-red-500 rounded-full"
-                    onClick={() => setCompany('')}
-                  >
-                    <X className="h-3 w-3" />
-                  </Button>
-                )}
-              </div>
-            </div>
-            <div className="flex flex-col space-y-2">
-              <label className="text-sm font-medium">Location</label>
-              <div className="flex items-center space-x-1 relative">
-                <Combobox
-                  value={location}
-                  onChange={setLocation}
-                  onInputChange={setLocationSearch}
-                  options={locationOptions}
-                  placeholder="Select location..."
-                  searchPlaceholder="Search locations..."
-                  emptyPlaceholder={
-                    locationSearch.length > 0
-                      ? 'No locations found.'
-                      : 'Locations will show up here'
-                  }
-                  loading={isLocationLoading}
-                />
-                {location && (
-                  <Button
-                    variant="default"
-                    size="icon"
-                    className="h-4 w-4 absolute -right-2 top-0 -translate-y-1/2 bg-red-500 rounded-full"
-                    onClick={() => setLocation('')}
-                  >
-                    <X className="h-3 w-3 " />
-                  </Button>
-                )}
-              </div>
-            </div>
-          </div>
-          <div className="flex items-center">
-            {areFiltersActive && (
-              <Button
-                variant="default"
-                onClick={handleClearFilters}
-                className="text-sm text-white bg-red-500 w-24"
-              >
-                Clear All
-              </Button>
-            )}
-          </div>
-        </div>
+        <ContactFilters
+          sort={sort}
+          onSortChange={setSort}
+          role={role}
+          onRoleChange={setRole}
+          onRoleSearchChange={setRoleSearch}
+          roleOptions={roleOptions}
+          isRoleLoading={isRoleLoading}
+          roleSearch={roleSearch}
+          industry={industry}
+          onIndustryChange={setIndustry}
+          onIndustrySearchChange={setIndustrySearch}
+          industryOptions={industryOptions}
+          isIndustryLoading={isIndustryLoading}
+          industrySearch={industrySearch}
+          company={company}
+          onCompanyChange={setCompany}
+          onCompanySearchChange={setCompanySearch}
+          companyOptions={companyOptions}
+          isCompanyLoading={isCompanyLoading}
+          companySearch={companySearch}
+          location={location}
+          onLocationChange={setLocation}
+          onLocationSearchChange={setLocationSearch}
+          locationOptions={locationOptions}
+          isLocationLoading={isLocationLoading}
+          locationSearch={locationSearch}
+          areFiltersActive={areFiltersActive}
+          onClearFilters={handleClearFilters}
+        />
       )}
 
       <div className="border rounded-lg overflow-hidden">
