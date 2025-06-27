@@ -28,6 +28,12 @@ export class SegmentMember {
   @CreateDateColumn({ name: 'added_at' })
   addedAt: Date;
 
+  @ManyToOne(() => Contact, (contact) => contact.segmentMembers, {
+    onDelete: 'CASCADE',
+  })
+  @JoinColumn({ name: 'contact_id' })
+  contact: Contact;
+
   @ManyToOne(() => Segment, (segment) => segment.members, {
     onDelete: 'CASCADE',
   })

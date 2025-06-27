@@ -68,35 +68,35 @@ export function AddManualForm({
               {...register('avatar', { required: true })}
             />
             {errors.avatar && (
-              <p className="text-red-500 text-xs mt-1">This field is required.</p>
+              <p className="text-destructive text-xs mt-1">This field is required.</p>
             )}
           </div>
           <div className="space-y-1">
             <Label htmlFor="name">Name *</Label>
             <Input id="name" {...register('name', { required: true })} />
             {errors.name && (
-              <p className="text-red-500 text-xs mt-1">This field is required.</p>
+              <p className="text-destructive text-xs mt-1">This field is required.</p>
             )}
           </div>
           <div className="space-y-1">
             <Label htmlFor="email">Email *</Label>
             <Input id="email" {...register('email', { required: true })} />
             {errors.email && (
-              <p className="text-red-500 text-xs mt-1">This field is required.</p>
+              <p className="text-destructive text-xs mt-1">This field is required.</p>
             )}
           </div>
           <div className="space-y-1">
             <Label htmlFor="role">Role *</Label>
             <Input id="role" {...register('role', { required: true })} />
             {errors.role && (
-              <p className="text-red-500 text-xs mt-1">This field is required.</p>
+              <p className="text-destructive text-xs mt-1">This field is required.</p>
             )}
           </div>
           <div className="space-y-1">
             <Label htmlFor="company">Company *</Label>
             <Input id="company" {...register('company', { required: true })} />
             {errors.company && (
-              <p className="text-red-500 text-xs mt-1">This field is required.</p>
+              <p className="text-destructive text-xs mt-1">This field is required.</p>
             )}
           </div>
           <div className="space-y-1">
@@ -116,7 +116,7 @@ export function AddManualForm({
               </SelectContent>
             </Select>
             {errors.industry && (
-              <p className="text-red-500 text-xs mt-1">This field is required.</p>
+              <p className="text-destructive text-xs mt-1">This field is required.</p>
             )}
           </div>
           <LocationInput control={control} error={errors.location} />

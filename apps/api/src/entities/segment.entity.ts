@@ -29,7 +29,7 @@ export class Segment {
   @Column({ name: 'rules_json', type: 'jsonb', nullable: true })
   rulesJson: Record<string, any>;
 
-  @Column({ name: 'created_by', type: 'uuid' })
+  @Column({ name: 'created_by', type: 'uuid', nullable: true })
   createdBy: string;
 
   @CreateDateColumn({ name: 'created_at' })

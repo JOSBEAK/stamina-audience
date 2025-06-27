@@ -8,7 +8,7 @@ import {
 } from '@/components/ui/select';
 import { Combobox } from '@/components/ui/combobox';
 import { Button } from '@/components/ui/button';
-import { X } from 'lucide-react';
+import { ClearButton } from './ui/clear-button';
 
 interface ContactFiltersProps {
   sort: string;
@@ -77,8 +77,8 @@ export function ContactFilters({
   onClearFilters,
 }: ContactFiltersProps) {
   return (
-    <div className="flex items-center justify-between">
-      <div className="flex items-center justify-start space-x-8 mb-4 p-4 bg-gray-50 rounded-lg w-full">
+    <div className="flex items-end justify-between mb-4 p-4 bg-gray-50 rounded-lg w-full">
+      <div className="flex items-end justify-start space-x-8">
         <div className="flex flex-col space-y-2">
           <label className="text-sm font-medium">Sort by</label>
           <div className="flex items-center space-x-1 relative">
@@ -97,14 +97,7 @@ export function ContactFilters({
               </SelectContent>
             </Select>
             {sort !== 'createdAt:desc' && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-4 w-4 absolute -right-2 top-0 -translate-y-1/2 bg-red-500 rounded-full"
-                onClick={() => onSortChange('createdAt:desc')}
-              >
-                <X className="h-3 w-3 text-white" />
-              </Button>
+              <ClearButton onClick={() => onSortChange('createdAt:desc')} />
             )}
           </div>
         </div>
@@ -125,16 +118,7 @@ export function ContactFilters({
               }
               loading={isRoleLoading}
             />
-            {role && (
-              <Button
-                variant="default"
-                size="icon"
-                className="h-4 w-4 absolute -right-2 top-0 -translate-y-1/2 bg-red-500 rounded-full"
-                onClick={() => onRoleChange('')}
-              >
-                <X className="h-3 w-3" />
-              </Button>
-            )}
+            {role && <ClearButton onClick={() => onRoleChange('')} />}
           </div>
         </div>
         <div className="flex flex-col space-y-2">
@@ -154,16 +138,7 @@ export function ContactFilters({
               }
               loading={isIndustryLoading}
             />
-            {industry && (
-              <Button
-                variant="default"
-                size="icon"
-                className="h-4 w-4 absolute -right-2 top-0 -translate-y-1/2 bg-red-500 rounded-full"
-                onClick={() => onIndustryChange('')}
-              >
-                <X className="h-3 w-3" />
-              </Button>
-            )}
+            {industry && <ClearButton onClick={() => onIndustryChange('')} />}
           </div>
         </div>
         <div className="flex flex-col space-y-2">
@@ -183,16 +158,7 @@ export function ContactFilters({
               }
               loading={isCompanyLoading}
             />
-            {company && (
-              <Button
-                variant="default"
-                size="icon"
-                className="h-4 w-4 absolute -right-2 top-0 -translate-y-1/2 bg-red-500 rounded-full"
-                onClick={() => onCompanyChange('')}
-              >
-                <X className="h-3 w-3" />
-              </Button>
-            )}
+            {company && <ClearButton onClick={() => onCompanyChange('')} />}
           </div>
         </div>
         <div className="flex flex-col space-y-2">
@@ -212,25 +178,16 @@ export function ContactFilters({
               }
               loading={isLocationLoading}
             />
-            {location && (
-              <Button
-                variant="default"
-                size="icon"
-                className="h-4 w-4 absolute -right-2 top-0 -translate-y-1/2 bg-red-500 rounded-full"
-                onClick={() => onLocationChange('')}
-              >
-                <X className="h-3 w-3 " />
-              </Button>
-            )}
+            {location && <ClearButton onClick={() => onLocationChange('')} />}
           </div>
         </div>
       </div>
-      <div className="flex items-center">
+      <div className="flex items-end">
         {areFiltersActive && (
           <Button
-            variant="default"
+            variant="destructive"
             onClick={onClearFilters}
-            className="text-sm text-white bg-red-500 w-24"
+            className="text-sm text-white w-24"
           >
             Clear All
           </Button>

@@ -101,3 +101,16 @@ export const SendGridEventSchema = z
   .passthrough(); // Allow other properties from SendGrid
 
 export type SendGridEvent = z.infer<typeof SendGridEventSchema>;
+
+export interface CreateSegmentDto {
+  name: string;
+}
+
+export interface Segment {
+  id: string;
+  name: string;
+  type: 'static' | 'dynamic';
+  createdAt: string;
+  // This could be enhanced to show a count instead of the full member list for performance
+  members?: { id: string }[];
+}

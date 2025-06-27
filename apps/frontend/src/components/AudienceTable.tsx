@@ -14,6 +14,7 @@ interface AudienceTableProps {
   onSelectAll: () => void
   onDeleteSelected: () => void
   onEditSelected: (contactId: string) => void
+  onAddToSegment: () => void
   areFiltersActive: boolean
   onAddContact: () => void
 }
@@ -26,6 +27,7 @@ export function AudienceTable({
   onSelectAll,
   onDeleteSelected,
   onEditSelected,
+  onAddToSegment,
   areFiltersActive,
   onAddContact,
 }: AudienceTableProps) {
@@ -59,6 +61,9 @@ export function AudienceTable({
             <div className="flex items-center gap-4 w-full justify-between">
               <span className="text-sm font-medium">{numSelected} selected</span>
               <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" onClick={onAddToSegment}>
+                  Add to Segment
+                </Button>
                 {numSelected === 1 && (
                   <Button variant="outline" size="sm" onClick={() => onEditSelected(selectedContacts[0])}>
                     <Edit className="mr-2 h-4 w-4" />

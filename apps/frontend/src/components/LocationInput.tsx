@@ -45,7 +45,7 @@ const GoogleAutocomplete = ({
         {...field}
         type="text"
         placeholder="Enter a location"
-        className={error ? 'border-red-500' : ''}
+        className={error ? 'border-destructive' : ''}
       />
     </Autocomplete>
   );
@@ -64,7 +64,7 @@ const LocationInput: React.FC<LocationInputProps> = ({ control, error }) => {
     const errorMsg =
       'Google Maps API Key is missing. Please create `apps/frontend/.env` and add `NX_PUBLIC_GOOGLE_MAPS_API_KEY=YOUR_KEY_HERE`. Then, restart the server.';
     console.error(errorMsg);
-    return <p className="text-red-500">{errorMsg}</p>;
+    return <p className="text-destructive">{errorMsg}</p>;
   }
 
   return isLoaded ? (
@@ -78,7 +78,7 @@ const LocationInput: React.FC<LocationInputProps> = ({ control, error }) => {
           <GoogleAutocomplete field={field} error={error} />
         )}
       />
-      {error && <p className="text-red-500 text-xs mt-1">{error.message}</p>}
+      {error && <p className="text-destructive text-xs mt-1">{error.message}</p>}
     </div>
   ) : (
     <div>Loading location search...</div>

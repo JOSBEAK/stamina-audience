@@ -1,8 +1,10 @@
-import { Contact } from '@stamina-project/types';
 import axios from 'axios';
+import { Contact, CreateSegmentDto, Segment } from '@stamina-project/types';
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
 const apiClient = axios.create({
-  baseURL: '/api',
+  baseURL: API_URL,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -90,4 +92,42 @@ export const getPresignedUrl = async (
     fileType,
   });
   return data;
+};
+
+export const getSegments = async (): Promise<Segment[]> => {
+  const { data } = await apiClient.get('/segments');
+  return data;
+};
+
+export const createSegment = async (
+  segmentData: CreateSegmentDto
+): Promise<Segment> => {
+  const { data } = await apiClient.post('/segments', segmentData);
+  return data;
+};
+
+export const getSegmentContacts = async (
+  segmentId: string,
+  params: {
+    page: number;
+    limit: number;
+    search?: string;
+    sort?: string;
+    role?: string;
+    company?: string;
+    location?: string;
+    industry?: string;
+  }
+): Promise<{ data: Contact[]; total: number }> => {
+  const { data } = await apiClient.get(`/segments/${segmentId}/contacts`, {
+    params,
+  });
+  return data;
+};
+
+export const addContactsToSegment = async (
+  segmentId: string,
+  contactIds: string[]
+): Promise<void> => {
+  await apiClient.post(`/segments/${segmentId}/contacts`, { contactIds });
 };

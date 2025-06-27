@@ -50,7 +50,7 @@ export function Combobox({
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className="w-52 justify-between"
+          className="w-full justify-between"
         >
           <span className="truncate">
             {value
@@ -60,7 +60,7 @@ export function Combobox({
           <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-52 p-0">
+      <PopoverContent className="w-full p-0">
         <Command>
           <CommandInput
             placeholder={searchPlaceholder}

@@ -17,7 +17,7 @@ export function App() {
         </nav>
       </div>
 
-      <main className="container mx-auto p-4">
+      <main className="container mx-auto max-w-screen-2xl w-full p-4">
         <Outlet />
       </main>
     </div>

@@ -4,18 +4,18 @@ import {
   Users,
   ChevronLeft,
   ChevronRight,
-  X,
   ChevronUp,
   ChevronDown,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { Contact } from '@stamina-project/types';
+import { Contact, Segment } from '@stamina-project/types';
 import {
   useContacts,
   useAddContactsBatch,
   useDeleteContacts,
   useUpdateContact,
 } from '@/hooks/useContacts';
+import { useSegmentContacts, useAddContactsToSegment } from '@/hooks/useSegments';
 import { AudienceTable } from '@/components/AudienceTable';
 import AddAudienceModal from '@/components/AddAudienceModal';
 import { AddManualForm } from '@/components/AddManualForm';
@@ -35,20 +35,38 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Combobox } from '@/components/ui/combobox';
 import { ContactFilters } from '@/components/ContactFilters';
+import { SegmentList } from '@/components/SegmentList';
+import { AddToSegmentModal } from '@/components/AddToSegmentModal';
+import { AddParticipantsModal } from '@/components/AddParticipantsModal';
 
 type CsvRow = Record<string, string>;
 
+type UseContactsParams = {
+  search: string;
+  page: number;
+  limit: number;
+  sort: string;
+  role: string;
+  company: string;
+  location: string;
+  industry: string;
+};
+
+const useGetContacts = (
+  selectedSegmentId: string | null,
+  params: UseContactsParams
+) => {
+  if (selectedSegmentId) {
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    return useSegmentContacts(selectedSegmentId, params);
+  }
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  return useContacts(params);
+};
+
 export function ContactsPage() {
-  const [view, setView] = useState('list'); // 'list', 'add_selection', 'add_manual', 'upload_csv', 'field_mapping'
+  const [view, setView] = useState('list');
   const [csvData, setCsvData] = useState<CsvRow[]>([]);
   const [csvHeaders, setCsvHeaders] = useState<string[]>([]);
   const [selectedContacts, setSelectedContacts] = useState<string[]>([]);
@@ -67,22 +85,19 @@ export function ContactsPage() {
   const [locationSearch, setLocationSearch] = useState('');
   const [industry, setIndustry] = useState('');
   const [industrySearch, setIndustrySearch] = useState('');
-  const [roleOptions, setRoleOptions] = useState<
-    { label: string; value: string }[]
-  >([]);
-  const [companyOptions, setCompanyOptions] = useState<
-    { label: string; value: string }[]
-  >([]);
-  const [locationOptions, setLocationOptions] = useState<
-    { label: string; value: string }[]
-  >([]);
-  const [industryOptions, setIndustryOptions] = useState<
-    { label: string; value: string }[]
-  >([]);
+  const [roleOptions, setRoleOptions] = useState<{ label: string; value: string }[]>([]);
+  const [companyOptions, setCompanyOptions] = useState<{ label: string; value: string }[]>([]);
+  const [locationOptions, setLocationOptions] = useState<{ label: string; value: string }[]>([]);
+  const [industryOptions, setIndustryOptions] = useState<{ label: string; value: string }[]>([]);
   const [isCompanyLoading, setIsCompanyLoading] = useState(false);
   const [isLocationLoading, setIsLocationLoading] = useState(false);
   const [isIndustryLoading, setIsIndustryLoading] = useState(false);
   const [isRoleLoading, setIsRoleLoading] = useState(false);
+  const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
+  const [isAddToSegmentModalOpen, setIsAddToSegmentModalOpen] = useState(false);
+  const [newlyCreatedSegment, setNewlyCreatedSegment] = useState<Segment | null>(
+    null
+  );
 
   const limit = 10;
 
@@ -99,6 +114,21 @@ export function ContactsPage() {
   const debouncedIndustrySearch = useDebounce(industrySearch, 300);
   const debouncedRoleSearch = useDebounce(roleSearch, 300);
   const debouncedSearchQuery = useDebounce(searchQuery, 500);
+
+  const { data, isLoading } = useGetContacts(selectedSegmentId, {
+    search: debouncedSearchQuery,
+    page: currentPage,
+    limit,
+    sort,
+    role,
+    company,
+    location,
+    industry,
+  });
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedSegmentId]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -167,17 +197,6 @@ export function ContactsPage() {
     }
   }, [debouncedIndustrySearch]);
 
-  const { data, isLoading } = useContacts({
-    search: debouncedSearchQuery,
-    page: currentPage,
-    limit,
-    sort,
-    role,
-    company,
-    location,
-    industry,
-  });
-
   const handleClearFilters = () => {
     setSearchQuery('');
     setSort('createdAt:desc');
@@ -194,6 +213,7 @@ export function ContactsPage() {
   const addContactsMutation = useAddContactsBatch();
   const deleteContactsMutation = useDeleteContacts();
   const updateContactMutation = useUpdateContact();
+  const addContactsToSegmentMutation = useAddContactsToSegment();
 
   const contacts = data?.data ?? [];
   const totalContacts = data?.total ?? 0;
@@ -217,13 +237,28 @@ export function ContactsPage() {
     setView('field_mapping');
   };
 
-  const handleMappingConfirm = async (mappedData: Partial<Contact>[]) => {
-    toast.promise(addContactsMutation.mutateAsync(mappedData), {
-      loading: 'Adding contacts...',
-      success: 'Contacts added successfully!',
-      error: 'Failed to add contacts.',
-    });
+  const handleMappingConfirm = async (
+    mappedData: Partial<Contact>[],
+    segmentId?: string
+  ) => {
+    toast.promise(
+      addContactsMutation.mutateAsync(mappedData).then((newContacts) => {
+        if (segmentId && newContacts) {
+          const contactIds = newContacts.map((c) => c.id);
+          return addContactsToSegmentMutation.mutateAsync({
+            segmentId,
+            contactIds,
+          });
+        }
+      }),
+      {
+        loading: 'Adding contacts...',
+        success: 'Contacts added successfully!',
+        error: 'Failed to add contacts.',
+      }
+    );
     setView('list');
+    setSelectedContacts([]);
   };
 
   const handleSelectionChange = (contactId: string) => {
@@ -295,6 +330,47 @@ export function ContactsPage() {
     });
   };
 
+  const handleAddToSegmentConfirm = (segmentId: string) => {
+    toast.promise(
+      addContactsToSegmentMutation.mutateAsync({
+        segmentId,
+        contactIds: selectedContacts,
+      }),
+      {
+        loading: 'Adding contacts to segment...',
+        success: () => {
+          setIsAddToSegmentModalOpen(false);
+          setSelectedContacts([]);
+          return 'Contacts added to segment successfully!';
+        },
+        error: 'Failed to add contacts to segment.',
+      }
+    );
+  };
+
+  const handleSegmentCreated = (segment: Segment) => {
+    setNewlyCreatedSegment(segment);
+  };
+
+  const handleAddParticipantsConfirm = (contactIds: string[]) => {
+    if (!newlyCreatedSegment) return;
+
+    toast.promise(
+      addContactsToSegmentMutation.mutateAsync({
+        segmentId: newlyCreatedSegment.id,
+        contactIds,
+      }),
+      {
+        loading: `Adding ${contactIds.length} contacts to "${newlyCreatedSegment.name}"...`,
+        success: () => {
+          setNewlyCreatedSegment(null); // Close the modal
+          return 'Contacts added successfully!';
+        },
+        error: 'Failed to add contacts.',
+      }
+    );
+  };
+
   const renderContent = () => {
     if (view === 'add_selection') {
       return (
@@ -348,118 +424,145 @@ export function ContactsPage() {
         </Button>
       </div>
 
-      <div className="flex justify-between items-center mb-6">
-        <div className="flex items-center">
-          <h1 className="text-2xl font-semibold">Audience List</h1>
-          <span className="text-sm text-muted-foreground ml-2 border border-border px-2 py-1 rounded-lg">
-            {totalContacts} people
-          </span>
-        </div>
-        <div className="flex items-center space-x-2">
-          <div className="relative w-64">
-            <Input
-              ref={searchInputRef}
-              placeholder="Search..."
-              className="w-full"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-            <div className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-gray-400 border rounded-md p-1">
-              ⌘K
+      <div className="flex">
+        <SegmentList
+          onSelectSegment={setSelectedSegmentId}
+          selectedSegmentId={selectedSegmentId}
+          onSegmentCreated={handleSegmentCreated}
+        />
+        <div className="flex-1 pl-4">
+          <div className="flex justify-between items-center mb-6">
+            <div className="flex items-center">
+              <h1 className="text-2xl font-semibold">
+                {selectedSegmentId ? 'Segment' : 'All Contacts'}
+              </h1>
+              <span className="text-sm text-muted-foreground ml-2 border border-border px-2 py-1 rounded-lg">
+                {totalContacts} people
+              </span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <div className="relative w-64">
+                <Input
+                  ref={searchInputRef}
+                  placeholder="Search..."
+                  className="w-full"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+                <div className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-gray-400 border rounded-md p-1">
+                  ⌘K
+                </div>
+              </div>
+              <Button
+                variant="outline"
+                onClick={() => setShowFilters(!showFilters)}
+                className="gap-2"
+              >
+                Filters
+                {showFilters ? (
+                  <ChevronDown className="w-3 h-3" />
+                ) : (
+                  <ChevronUp className="w-3 h-3" />
+                )}
+              </Button>
             </div>
           </div>
-          <Button
-            variant="outline"
-            onClick={() => setShowFilters(!showFilters)}
-            className='gap-2'
-          >
-            Filters
-            {showFilters ?<ChevronDown className='w-3 h-3' /> : <ChevronUp className='w-3 h-3' />}
-          </Button>
+
+          {showFilters && (
+            <ContactFilters
+              sort={sort}
+              onSortChange={setSort}
+              role={role}
+              onRoleChange={setRole}
+              onRoleSearchChange={setRoleSearch}
+              roleOptions={roleOptions}
+              isRoleLoading={isRoleLoading}
+              roleSearch={roleSearch}
+              industry={industry}
+              onIndustryChange={setIndustry}
+              onIndustrySearchChange={setIndustrySearch}
+              industryOptions={industryOptions}
+              isIndustryLoading={isIndustryLoading}
+              industrySearch={industrySearch}
+              company={company}
+              onCompanyChange={setCompany}
+              onCompanySearchChange={setCompanySearch}
+              companyOptions={companyOptions}
+              isCompanyLoading={isCompanyLoading}
+              companySearch={companySearch}
+              location={location}
+              onLocationChange={setLocation}
+              onLocationSearchChange={setLocationSearch}
+              locationOptions={locationOptions}
+              isLocationLoading={isLocationLoading}
+              locationSearch={locationSearch}
+              areFiltersActive={areFiltersActive}
+              onClearFilters={handleClearFilters}
+            />
+          )}
+
+          <div className="border rounded-lg overflow-hidden">
+            <AudienceTable
+              contacts={contacts}
+              loading={isLoading}
+              selectedContacts={selectedContacts}
+              onSelectionChange={handleSelectionChange}
+              onSelectAll={handleSelectAll}
+              onDeleteSelected={() => setIsDeleteDialogOpen(true)}
+              onEditSelected={handleEditSelected}
+              onAddToSegment={() => setIsAddToSegmentModalOpen(true)}
+              areFiltersActive={areFiltersActive}
+              onAddContact={() => setView('add_selection')}
+            />
+          </div>
+
+          <div className="flex justify-between items-center mt-4">
+            <Button
+              variant="outline"
+              onClick={handlePreviousPage}
+              disabled={currentPage === 1}
+            >
+              <ChevronLeft className="mr-2 h-4 w-4" />
+              Previous
+            </Button>
+            <span className="text-sm text-gray-500">
+              Page {totalContacts > 0 ? currentPage : 0} of {totalPages}
+            </span>
+            <Button
+              variant="default"
+              onClick={handleNextPage}
+              disabled={currentPage === totalPages || totalPages === 0}
+            >
+              Next
+              <ChevronRight className="ml-2 h-4 w-4" />
+            </Button>
+          </div>
         </div>
-      </div>
-
-      {showFilters && (
-        <ContactFilters
-          sort={sort}
-          onSortChange={setSort}
-          role={role}
-          onRoleChange={setRole}
-          onRoleSearchChange={setRoleSearch}
-          roleOptions={roleOptions}
-          isRoleLoading={isRoleLoading}
-          roleSearch={roleSearch}
-          industry={industry}
-          onIndustryChange={setIndustry}
-          onIndustrySearchChange={setIndustrySearch}
-          industryOptions={industryOptions}
-          isIndustryLoading={isIndustryLoading}
-          industrySearch={industrySearch}
-          company={company}
-          onCompanyChange={setCompany}
-          onCompanySearchChange={setCompanySearch}
-          companyOptions={companyOptions}
-          isCompanyLoading={isCompanyLoading}
-          companySearch={companySearch}
-          location={location}
-          onLocationChange={setLocation}
-          onLocationSearchChange={setLocationSearch}
-          locationOptions={locationOptions}
-          isLocationLoading={isLocationLoading}
-          locationSearch={locationSearch}
-          areFiltersActive={areFiltersActive}
-          onClearFilters={handleClearFilters}
-        />
-      )}
-
-      <div className="border rounded-lg overflow-hidden">
-        <AudienceTable
-          contacts={contacts}
-          loading={isLoading}
-          selectedContacts={selectedContacts}
-          onSelectionChange={handleSelectionChange}
-          onSelectAll={handleSelectAll}
-          onDeleteSelected={() => setIsDeleteDialogOpen(true)}
-          onEditSelected={handleEditSelected}
-          areFiltersActive={areFiltersActive}
-          onAddContact={() => setView('add_selection')}
-        />
-      </div>
-
-      <div className="flex justify-between items-center mt-4">
-        <Button
-          variant="outline"
-          onClick={handlePreviousPage}
-          disabled={currentPage === 1}
-        >
-          <ChevronLeft className="mr-2 h-4 w-4" />
-          Previous
-        </Button>
-        <span className="text-sm text-gray-500">
-          Page {totalContacts > 0 ? currentPage : 0} of {totalPages}
-        </span>
-        <Button
-          variant="default"
-          onClick={handleNextPage}
-          disabled={currentPage === totalPages || totalPages === 0}
-        >
-          Next
-          <ChevronRight className="ml-2 h-4 w-4" />
-        </Button>
       </div>
 
       {renderContent()}
 
-      <AlertDialog
-        open={isDeleteDialogOpen}
-        onOpenChange={setIsDeleteDialogOpen}
-      >
+      <AddParticipantsModal
+        isOpen={!!newlyCreatedSegment}
+        onClose={() => setNewlyCreatedSegment(null)}
+        onConfirm={handleAddParticipantsConfirm}
+        segmentName={newlyCreatedSegment?.name ?? ''}
+      />
+
+      <AddToSegmentModal
+        isOpen={isAddToSegmentModalOpen}
+        onClose={() => setIsAddToSegmentModalOpen(false)}
+        onConfirm={handleAddToSegmentConfirm}
+        contactCount={selectedContacts.length}
+        currentSegmentId={selectedSegmentId}
+      />
+
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the
-              selected contacts.
+              This action cannot be undone. This will permanently delete the selected contacts.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

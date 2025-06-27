@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useMemo } from "react"
 import type { Contact } from "@stamina-project/types"
 import { X, ArrowRight, Check, AlertCircle, RotateCcw, Eye, EyeOff } from "lucide-react"
@@ -8,10 +7,13 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { useSegments, useCreateSegment } from '@/hooks/useSegments'
+import { Input } from './ui/input'
+import { toast } from 'sonner'
 
 interface FieldMappingProps {
   onClose: () => void
-  onConfirm: (mappedData: Partial<Contact>[]) => void
+  onConfirm: (mappedData: Partial<Contact>[], segmentId?: string) => void
   csvData: any[]
   csvHeaders: string[]
 }
@@ -30,6 +32,11 @@ export default function FieldMapping({ onClose, onConfirm, csvData, csvHeaders }
   const [mapping, setMapping] = useState<Record<string, string>>({})
   const [ignoreEmpty, setIgnoreEmpty] = useState(true)
   const [showPreview, setShowPreview] = useState(false)
+  const [selectedSegment, setSelectedSegment] = useState<string>('new_segment')
+  const [newSegmentName, setNewSegmentName] = useState('')
+
+  const { data: segments, isLoading: isLoadingSegments } = useSegments()
+  const createSegmentMutation = useCreateSegment()
 
   // Auto-map fields on component mount
   useEffect(() => {
@@ -115,6 +122,16 @@ export default function FieldMapping({ onClose, onConfirm, csvData, csvHeaders }
   }
 
   const handleConfirm = () => {
+    if (stats.requiredFieldsMapped !== stats.totalRequiredFields && stats.validRows > 0) {
+      toast.error('Please map all required fields to continue.');
+      return;
+    }
+
+    if (selectedSegment === 'new_segment' && !newSegmentName.trim()) {
+      toast.error('Please enter a name for the new segment.')
+      return
+    }
+
     let processedData = csvData.map((row) => {
       const newRow: Partial<Contact> = {}
       for (const csvHeader in mapping) {
@@ -131,7 +148,19 @@ export default function FieldMapping({ onClose, onConfirm, csvData, csvHeaders }
         (row) => Object.keys(row).length > 0 && APP_FIELDS.some((field) => row[field.key as keyof Contact]),
       )
     }
-    onConfirm(processedData)
+
+    if (selectedSegment === 'new_segment') {
+      toast.promise(createSegmentMutation.mutateAsync({ name: newSegmentName }), {
+        loading: 'Creating new segment...',
+        success: async (newSegment) => {
+          onConfirm(processedData, newSegment.id)
+          return `Segment "${newSegment.name}" created and contacts added.`
+        },
+        error: 'Failed to create segment.',
+      })
+    } else {
+      onConfirm(processedData, selectedSegment)
+    }
   }
 
   const getSampleData = (header: string) => {
@@ -343,6 +372,36 @@ export default function FieldMapping({ onClose, onConfirm, csvData, csvHeaders }
                 </label>
               </CardContent>
             </Card>
+
+            <div className="mt-8 pt-6 border-t">
+              <h3 className="text-lg font-semibold mb-4">Add to Segment</h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                Organize these new contacts by adding them to a segment. You can
+                choose an existing one or create a new one.
+              </p>
+              <Select onValueChange={setSelectedSegment} value={selectedSegment}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a segment" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="new_segment">Create new segment</SelectItem>
+                  {segments?.map((segment) => (
+                    <SelectItem key={segment.id} value={segment.id}>
+                      {segment.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              {selectedSegment === 'new_segment' && (
+                <Input
+                  placeholder="New segment name..."
+                  className="mt-2"
+                  value={newSegmentName}
+                  onChange={(e) => setNewSegmentName(e.target.value)}
+                />
+              )}
+            </div>
           </div>
 
           {/* Footer */}
