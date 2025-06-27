@@ -5,6 +5,8 @@ import {
   addContactsBatch,
   deleteContacts,
   updateContact,
+  getUniqueLocations,
+  getUniqueCompanies,
   GetContactsParams,
 } from '../utils/api';
 
@@ -12,6 +14,20 @@ export const useContacts = (params: GetContactsParams) => {
   return useQuery({
     queryKey: ['contacts', params],
     queryFn: () => getContacts(params),
+  });
+};
+
+export const useUniqueLocations = () => {
+  return useQuery({
+    queryKey: ['uniqueLocations'],
+    queryFn: getUniqueLocations,
+  });
+};
+
+export const useUniqueCompanies = () => {
+  return useQuery({
+    queryKey: ['uniqueCompanies'],
+    queryFn: getUniqueCompanies,
   });
 };
 

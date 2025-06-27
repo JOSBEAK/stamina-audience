@@ -1,5 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Plus, Users, ChevronLeft, ChevronRight, AlertTriangle } from 'lucide-react';
+import {
+  Plus,
+  Users,
+  ChevronLeft,
+  ChevronRight,
+  AlertTriangle,
+  X,
+} from 'lucide-react';
 import { toast } from 'sonner';
 import { Contact } from '@stamina-project/types';
 import {
@@ -16,6 +23,7 @@ import FieldMapping from '@/components/FieldMapping';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useDebounce } from '@/hooks/useDebounce';
+import { searchAttributes } from '@/utils/api';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,6 +34,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Combobox } from '@/components/ui/combobox';
 
 type CsvRow = Record<string, string>;
 
@@ -39,30 +55,139 @@ export function ContactsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [editingContact, setEditingContact] = useState<Contact | null>(null);
+  const [showFilters, setShowFilters] = useState(false);
+  const [sort, setSort] = useState('createdAt:desc');
+  const [role, setRole] = useState('');
+  const [roleSearch, setRoleSearch] = useState('');
+  const [company, setCompany] = useState('');
+  const [companySearch, setCompanySearch] = useState('');
+  const [location, setLocation] = useState('');
+  const [locationSearch, setLocationSearch] = useState('');
+  const [industry, setIndustry] = useState('');
+  const [industrySearch, setIndustrySearch] = useState('');
+  const [roleOptions, setRoleOptions] = useState<
+    { label: string; value: string }[]
+  >([]);
+  const [companyOptions, setCompanyOptions] = useState<
+    { label: string; value: string }[]
+  >([]);
+  const [locationOptions, setLocationOptions] = useState<
+    { label: string; value: string }[]
+  >([]);
+  const [industryOptions, setIndustryOptions] = useState<
+    { label: string; value: string }[]
+  >([]);
+  const [isCompanyLoading, setIsCompanyLoading] = useState(false);
+  const [isLocationLoading, setIsLocationLoading] = useState(false);
+  const [isIndustryLoading, setIsIndustryLoading] = useState(false);
+  const [isRoleLoading, setIsRoleLoading] = useState(false);
+
   const limit = 10;
-  
+
+  const areFiltersActive =
+    sort !== 'createdAt:desc' ||
+    role !== '' ||
+    company !== '' ||
+    location !== '' ||
+    industry !== '' ||
+    searchQuery !== '';
+
+  const debouncedCompanySearch = useDebounce(companySearch, 300);
+  const debouncedLocationSearch = useDebounce(locationSearch, 300);
+  const debouncedIndustrySearch = useDebounce(industrySearch, 300);
+  const debouncedRoleSearch = useDebounce(roleSearch, 300);
   const debouncedSearchQuery = useDebounce(searchQuery, 500);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "k" && (event.metaKey || event.ctrlKey)) {
-        event.preventDefault()
-        searchInputRef.current?.focus()
+      if (event.key === 'k' && (event.metaKey || event.ctrlKey)) {
+        event.preventDefault();
+        searchInputRef.current?.focus();
       }
-    }
+    };
 
-    window.addEventListener("keydown", handleKeyDown)
+    window.addEventListener('keydown', handleKeyDown);
 
     return () => {
-      window.removeEventListener("keydown", handleKeyDown)
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (debouncedRoleSearch) {
+      setIsRoleLoading(true);
+      searchAttributes('role', debouncedRoleSearch).then((roles) => {
+        setRoleOptions(roles.map((r) => ({ label: r, value: r })));
+        setIsRoleLoading(false);
+      });
+    } else {
+      setRoleOptions([]);
     }
-  }, [])
+  }, [debouncedRoleSearch]);
+
+  useEffect(() => {
+    if (debouncedCompanySearch) {
+      setIsCompanyLoading(true);
+      searchAttributes('company', debouncedCompanySearch).then((companies) => {
+        setCompanyOptions(companies.map((c) => ({ label: c, value: c })));
+        setIsCompanyLoading(false);
+      });
+    } else {
+      setCompanyOptions([]);
+    }
+  }, [debouncedCompanySearch]);
+
+  useEffect(() => {
+    if (debouncedLocationSearch) {
+      setIsLocationLoading(true);
+      searchAttributes('location', debouncedLocationSearch).then(
+        (locations) => {
+          setLocationOptions(locations.map((l) => ({ label: l, value: l })));
+          setIsLocationLoading(false);
+        }
+      );
+    } else {
+      setLocationOptions([]);
+    }
+  }, [debouncedLocationSearch]);
+
+  useEffect(() => {
+    if (debouncedIndustrySearch) {
+      setIsIndustryLoading(true);
+      searchAttributes('industry', debouncedIndustrySearch).then(
+        (industries) => {
+          setIndustryOptions(industries.map((i) => ({ label: i, value: i })));
+          setIsIndustryLoading(false);
+        }
+      );
+    } else {
+      setIndustryOptions([]);
+    }
+  }, [debouncedIndustrySearch]);
 
   const { data, isLoading } = useContacts({
     search: debouncedSearchQuery,
     page: currentPage,
     limit,
+    sort,
+    role,
+    company,
+    location,
+    industry,
   });
+
+  const handleClearFilters = () => {
+    setSearchQuery('');
+    setSort('createdAt:desc');
+    setRole('');
+    setCompany('');
+    setLocation('');
+    setIndustry('');
+    setCompanySearch('');
+    setLocationSearch('');
+    setIndustrySearch('');
+    setRoleSearch('');
+  };
 
   const addContactsMutation = useAddContactsBatch();
   const deleteContactsMutation = useDeleteContacts();
@@ -92,19 +217,19 @@ export function ContactsPage() {
 
   const handleMappingConfirm = async (mappedData: Partial<Contact>[]) => {
     toast.promise(addContactsMutation.mutateAsync(mappedData), {
-      loading: "Adding contacts...",
-      success: "Contacts added successfully!",
-      error: "Failed to add contacts.",
-    })
-    setView("list")
+      loading: 'Adding contacts...',
+      success: 'Contacts added successfully!',
+      error: 'Failed to add contacts.',
+    });
+    setView('list');
   };
 
   const handleSelectionChange = (contactId: string) => {
     setSelectedContacts((prev) =>
       prev.includes(contactId)
         ? prev.filter((id) => id !== contactId)
-        : [...prev, contactId],
-    )
+        : [...prev, contactId]
+    );
   };
 
   const handleSelectAll = () => {
@@ -118,15 +243,15 @@ export function ContactsPage() {
   const handleEditSelected = (contactId: string) => {
     const contactToEdit = contacts.find((c) => c.id === contactId);
     if (contactToEdit) {
-      setEditingContact(contactToEdit)
-      setView("add_manual")
+      setEditingContact(contactToEdit);
+      setView('add_manual');
     }
   };
 
   const handleCloseForm = () => {
-    setEditingContact(null)
-    setView("list")
-  }
+    setEditingContact(null);
+    setView('list');
+  };
 
   const handleFormSubmit = async (contactData: Partial<Contact>) => {
     if (editingContact) {
@@ -136,37 +261,77 @@ export function ContactsPage() {
           contactData,
         }),
         {
-          loading: "Updating contact...",
+          loading: 'Updating contact...',
           success: () => {
-            handleCloseForm()
-            return "Contact updated successfully!"
+            handleCloseForm();
+            return 'Contact updated successfully!';
           },
-          error: "Failed to update contact.",
-        },
-      )
+          error: 'Failed to update contact.',
+        }
+      );
     } else {
       toast.promise(addContactsMutation.mutateAsync([contactData]), {
-        loading: "Adding contact...",
+        loading: 'Adding contact...',
         success: () => {
-          handleCloseForm()
-          return "Contact added successfully!"
+          handleCloseForm();
+          return 'Contact added successfully!';
         },
-        error: "Failed to add contact.",
-      })
+        error: 'Failed to add contact.',
+      });
     }
-  }
+  };
 
   const handleDeleteSelected = async () => {
     toast.promise(deleteContactsMutation.mutateAsync(selectedContacts), {
-      loading: "Deleting contacts...",
+      loading: 'Deleting contacts...',
       success: () => {
-        setSelectedContacts([])
-        setIsDeleteDialogOpen(false)
-        return "Contacts deleted successfully!"
+        setSelectedContacts([]);
+        setIsDeleteDialogOpen(false);
+        return 'Contacts deleted successfully!';
       },
-      error: "Failed to delete contacts.",
-    })
-  }
+      error: 'Failed to delete contacts.',
+    });
+  };
+
+  const renderContent = () => {
+    if (view === 'add_selection') {
+      return (
+        <AddAudienceModal
+          onClose={() => setView('list')}
+          onAddManually={() => setView('add_manual')}
+          onUploadCsv={() => setView('upload_csv')}
+        />
+      );
+    }
+    if (view === 'add_manual') {
+      return (
+        <AddManualForm
+          onClose={handleCloseForm}
+          onContactSubmit={handleFormSubmit}
+          initialData={editingContact}
+        />
+      );
+    }
+    if (view === 'upload_csv') {
+      return (
+        <UploadCsvModal
+          onClose={() => setView('list')}
+          onDataParsed={handleDataParsed}
+        />
+      );
+    }
+    if (view === 'field_mapping') {
+      return (
+        <FieldMapping
+          csvHeaders={csvHeaders}
+          csvData={csvData}
+          onConfirm={handleMappingConfirm}
+          onClose={() => setView('list')}
+        />
+      );
+    }
+    return null;
+  };
 
   return (
     <div className="p-8 border border-border rounded-lg">
@@ -201,8 +366,177 @@ export function ContactsPage() {
               ⌘K
             </div>
           </div>
+          <Button
+            variant="outline"
+            onClick={() => setShowFilters(!showFilters)}
+          >
+            Filters
+          </Button>
         </div>
       </div>
+
+      {showFilters && (
+        <div className="flex items-center justify-between">
+          <div className="flex items-center justify-start space-x-8 mb-4 p-4 bg-gray-50 rounded-lg w-full">
+            <div className="flex flex-col space-y-2">
+              <label className="text-sm font-medium">Sort by</label>
+              <div className="flex items-center space-x-1 relative">
+                <Select
+                  value={sort}
+                  onValueChange={(value) => setSort(value || 'createdAt:desc')}
+                >
+                  <SelectTrigger className="w-32">
+                    <SelectValue placeholder="Sort by" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="createdAt:desc">Newest</SelectItem>
+                    <SelectItem value="createdAt:asc">Oldest</SelectItem>
+                    <SelectItem value="name:asc">Name (A-Z)</SelectItem>
+                    <SelectItem value="name:desc">Name (Z-A)</SelectItem>
+                  </SelectContent>
+                </Select>
+                {sort !== 'createdAt:desc' && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-4 w-4 absolute -right-2 top-0 -translate-y-1/2 bg-red-500 rounded-full"
+                    onClick={() => setSort('createdAt:desc')}
+                  >
+                    <X className="h-3 w-3 text-white" />
+                  </Button>
+                )}
+              </div>
+            </div>
+            <div className="flex flex-col space-y-2">
+              <label className="text-sm font-medium">Role</label>
+              <div className="flex items-center space-x-1 relative">
+                <Combobox
+                  value={role}
+                  onChange={setRole}
+                  onInputChange={setRoleSearch}
+                  options={roleOptions}
+                  placeholder="Select role..."
+                  searchPlaceholder="Search roles..."
+                  emptyPlaceholder={
+                    roleSearch.length > 0
+                      ? 'No roles found.'
+                      : 'Roles will show up here'
+                  }
+                  loading={isRoleLoading}
+                />
+                {role && (
+                  <Button
+                    variant="default"
+                    size="icon"
+                    className="h-4 w-4 absolute -right-2 top-0 -translate-y-1/2 bg-red-500 rounded-full"
+                    onClick={() => setRole('')}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                )}
+              </div>
+            </div>
+            <div className="flex flex-col space-y-2">
+              <label className="text-sm font-medium">Industry</label>
+              <div className="flex items-center space-x-1 relative">
+                <Combobox
+                  value={industry}
+                  onChange={setIndustry}
+                  onInputChange={setIndustrySearch}
+                  options={industryOptions}
+                  placeholder="Select industry..."
+                  searchPlaceholder="Search industries..."
+                  emptyPlaceholder={
+                    industrySearch
+                      ? 'No industries found.'
+                      : 'Industries will show up here'
+                  }
+                  loading={isIndustryLoading}
+                />
+                {industry && (
+                  <Button
+                    variant="default"
+                    size="icon"
+                    className="h-4 w-4 absolute -right-2 top-0 -translate-y-1/2 bg-red-500 rounded-full"
+                    onClick={() => setIndustry('')}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                )}
+              </div>
+            </div>
+            <div className="flex flex-col space-y-2">
+              <label className="text-sm font-medium">Company</label>
+              <div className="flex items-center space-x-1 relative">
+                <Combobox
+                  value={company}
+                  onChange={setCompany}
+                  onInputChange={setCompanySearch}
+                  options={companyOptions}
+                  placeholder="Select company..."
+                  searchPlaceholder="Search companies..."
+                  emptyPlaceholder={
+                    companySearch.length > 0
+                      ? 'No companies found.'
+                      : 'Companies will show up here'
+                  }
+                  loading={isCompanyLoading}
+                />
+                {company && (
+                  <Button
+                    variant="default"
+                    size="icon"
+                    className="h-4 w-4 absolute -right-2 top-0 -translate-y-1/2 bg-red-500 rounded-full"
+                    onClick={() => setCompany('')}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                )}
+              </div>
+            </div>
+            <div className="flex flex-col space-y-2">
+              <label className="text-sm font-medium">Location</label>
+              <div className="flex items-center space-x-1 relative">
+                <Combobox
+                  value={location}
+                  onChange={setLocation}
+                  onInputChange={setLocationSearch}
+                  options={locationOptions}
+                  placeholder="Select location..."
+                  searchPlaceholder="Search locations..."
+                  emptyPlaceholder={
+                    locationSearch.length > 0
+                      ? 'No locations found.'
+                      : 'Locations will show up here'
+                  }
+                  loading={isLocationLoading}
+                />
+                {location && (
+                  <Button
+                    variant="default"
+                    size="icon"
+                    className="h-4 w-4 absolute -right-2 top-0 -translate-y-1/2 bg-red-500 rounded-full"
+                    onClick={() => setLocation('')}
+                  >
+                    <X className="h-3 w-3 " />
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center">
+            {areFiltersActive && (
+              <Button
+                variant="default"
+                onClick={handleClearFilters}
+                className="text-sm text-white bg-red-500 w-24"
+              >
+                Clear All
+              </Button>
+            )}
+          </div>
+        </div>
+      )}
 
       <div className="border rounded-lg overflow-hidden">
         <AudienceTable
@@ -213,6 +547,8 @@ export function ContactsPage() {
           onSelectAll={handleSelectAll}
           onDeleteSelected={() => setIsDeleteDialogOpen(true)}
           onEditSelected={handleEditSelected}
+          areFiltersActive={areFiltersActive}
+          onAddContact={() => setView('add_selection')}
         />
       </div>
 
@@ -238,57 +574,23 @@ export function ContactsPage() {
         </Button>
       </div>
 
-      {view === 'add_selection' && (
-        <AddAudienceModal
-          onClose={() => setView('list')}
-          onAddManually={() => setView('add_manual')}
-          onUploadCsv={() => setView('upload_csv')}
-        />
-      )}
+      {renderContent()}
 
-      {view === 'add_manual' && (
-        <AddManualForm
-          onClose={handleCloseForm}
-          onContactSubmit={handleFormSubmit}
-          initialData={editingContact}
-        />
-      )}
-
-      {view === 'upload_csv' && (
-        <UploadCsvModal
-          onClose={() => setView('list')}
-          onDataParsed={handleDataParsed}
-        />
-      )}
-
-      {view === 'field_mapping' && (
-        <FieldMapping
-          onClose={() => setView('list')}
-          onConfirm={handleMappingConfirm}
-          csvData={csvData}
-          csvHeaders={csvHeaders}
-        />
-      )}
-
-      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+      <AlertDialog
+        open={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>
-              <div className="flex items-center gap-2">
-                <AlertTriangle className="text-destructive" />
-                Are you sure you want to delete?
-              </div>
-            </AlertDialogTitle>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              You are about to delete {selectedContacts.length} contact(s). This action cannot be undone.
+              This action cannot be undone. This will permanently delete the
+              selected contacts.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDeleteSelected}
-              className="bg-destructive hover:bg-destructive/90"
-            >
+            <AlertDialogAction onClick={handleDeleteSelected}>
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -296,4 +598,4 @@ export function ContactsPage() {
       </AlertDialog>
     </div>
   );
-} 
+}

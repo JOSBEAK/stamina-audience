@@ -68,6 +68,7 @@ export class ContactsController {
   @ApiQuery({ name: 'location', required: true, type: String })
   @ApiQuery({ name: 'industry', required: true, type: String })
   @ApiQuery({ name: 'search', required: true, type: String })
+  @ApiQuery({ name: 'sort', required: false, type: String })
   @ApiQuery({ name: 'page', required: true, type: Number })
   @ApiQuery({ name: 'limit', required: true, type: Number })
   @ApiResponse({
@@ -81,6 +82,7 @@ export class ContactsController {
     @Query('location') location?: string,
     @Query('industry') industry?: string,
     @Query('search') search?: string,
+    @Query('sort') sort?: string,
     @Query('page') page?: string,
     @Query('limit') limit?: string
   ) {
@@ -93,9 +95,52 @@ export class ContactsController {
       location,
       industry,
       search,
+      sort,
       take,
       skip,
     });
+  }
+
+  @Get('locations')
+  @ApiOperation({ summary: 'Get unique contact locations' })
+  @ApiResponse({
+    status: 200,
+    description: 'A list of unique locations.',
+    type: [String],
+  })
+  findUniqueLocations() {
+    return this.contactsService.findUniqueLocations();
+  }
+
+  @Get('companies')
+  @ApiOperation({ summary: 'Get unique contact companies' })
+  @ApiResponse({
+    status: 200,
+    description: 'A list of unique companies.',
+    type: [String],
+  })
+  findUniqueCompanies() {
+    return this.contactsService.findUniqueCompanies();
+  }
+
+  @Get('search-attributes')
+  @ApiOperation({ summary: 'Search for unique attribute values' })
+  @ApiQuery({
+    name: 'attribute',
+    required: true,
+    enum: ['company', 'location', 'industry', 'role'],
+  })
+  @ApiQuery({ name: 'search', required: true, type: String })
+  @ApiResponse({
+    status: 200,
+    description: 'A list of matching attribute values.',
+    type: [String],
+  })
+  searchAttributes(
+    @Query('attribute') attribute: 'company' | 'location' | 'industry' | 'role',
+    @Query('search') search: string
+  ) {
+    return this.contactsService.searchAttributes(attribute, search);
   }
 
   @Get(':id')

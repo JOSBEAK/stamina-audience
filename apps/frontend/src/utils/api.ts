@@ -10,9 +10,11 @@ const apiClient = axios.create({
 
 export interface GetContactsParams {
   search?: string;
-  role?: boolean;
-  company?: boolean;
-  industry?: boolean;
+  role?: string;
+  company?: string;
+  location?: string;
+  industry?: string;
+  sort?: string;
   page?: number;
   limit?: number;
 }
@@ -54,6 +56,26 @@ export const updateContact = async (
   contactData: Partial<Contact>
 ): Promise<Contact> => {
   const { data } = await apiClient.patch(`/contacts/${id}`, contactData);
+  return data;
+};
+
+export const getUniqueLocations = async (): Promise<string[]> => {
+  const { data } = await apiClient.get('/contacts/locations');
+  return data;
+};
+
+export const getUniqueCompanies = async (): Promise<string[]> => {
+  const { data } = await apiClient.get('/contacts/companies');
+  return data;
+};
+
+export const searchAttributes = async (
+  attribute: 'company' | 'location' | 'industry' | 'role',
+  search: string
+): Promise<string[]> => {
+  const { data } = await apiClient.get('/contacts/search-attributes', {
+    params: { attribute, search },
+  });
   return data;
 };
 

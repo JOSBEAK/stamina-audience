@@ -15,7 +15,6 @@ import {
 
 @Entity('contacts') // Renamed from 'contacts'
 // New indexes from your provided schema. Note: 'lead' is now 'email'.
-@Index(['brandId', 'crmListId', 'email'], { unique: true })
 @Index(['brandId', 'crmListId', 'owners'])
 export class Contact {
   @PrimaryGeneratedColumn('uuid')
@@ -27,7 +26,7 @@ export class Contact {
   name: string; // Renamed from 'firstName' from your schema
 
   @Index() // Keeping index on email for performance
-  @Column({ type: 'varchar', length: 255 })
+  @Column({ type: 'varchar', length: 255, unique: true })
   email: string; // Renamed from 'lead'
 
   @Column({ type: 'varchar', length: 255 })

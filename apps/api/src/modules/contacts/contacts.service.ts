@@ -12,6 +12,7 @@ interface FindAllParams {
   location?: string;
   industry?: string;
   search?: string;
+  sort?: string;
   take?: number;
   skip?: number;
 }
@@ -64,21 +65,19 @@ export class ContactsService {
       location,
       industry,
       search,
+      sort,
       take = 10,
       skip = 0,
     } = params;
     const query = this.contactRepository.createQueryBuilder('contact');
 
     if (role) {
-      query.andWhere('contact.role IS NOT NULL AND contact.role != :empty', {
-        empty: '',
-      });
+      query.andWhere('contact.role = :role', { role });
     }
     if (company) {
-      query.andWhere(
-        'contact.company IS NOT NULL AND contact.company != :empty',
-        { empty: '' }
-      );
+      query.andWhere('contact.company = :company', {
+        company,
+      });
     }
     if (location) {
       query.andWhere('contact.location = :location', {
@@ -86,10 +85,7 @@ export class ContactsService {
       });
     }
     if (industry) {
-      query.andWhere(
-        'contact.industry IS NOT NULL AND contact.industry != :empty',
-        { empty: '' }
-      );
+      query.andWhere('contact.industry = :industry', { industry });
     }
 
     if (search) {
@@ -115,7 +111,14 @@ export class ContactsService {
     // A real app would get brandId from auth and add:
     // query.andWhere('contact.brandId = :brandId', { brandId });
 
-    query.orderBy('contact.createdAt', 'DESC').addOrderBy('contact.id', 'DESC');
+    if (sort) {
+      const [field, order] = sort.split(':');
+      query.orderBy(`contact.${field}`, order.toUpperCase() as 'ASC' | 'DESC');
+    } else {
+      query
+        .orderBy('contact.createdAt', 'DESC')
+        .addOrderBy('contact.id', 'DESC');
+    }
 
     query.skip(skip).take(take);
 
@@ -130,6 +133,42 @@ export class ContactsService {
       throw new NotFoundException(`Contact with ID "${id}" not found`);
     }
     return contact;
+  }
+
+  async findUniqueLocations(): Promise<string[]> {
+    const locations = await this.contactRepository
+      .createQueryBuilder('contact')
+      .select('DISTINCT(contact.location)', 'location')
+      .where("contact.location IS NOT NULL AND contact.location != ''")
+      .getRawMany();
+    return locations.map((l) => l.location);
+  }
+
+  async findUniqueCompanies(): Promise<string[]> {
+    const companies = await this.contactRepository
+      .createQueryBuilder('contact')
+      .select('DISTINCT(contact.company)', 'company')
+      .where("contact.company IS NOT NULL AND contact.company != ''")
+      .getRawMany();
+    return companies.map((c) => c.company);
+  }
+
+  async searchAttributes(
+    attribute: 'company' | 'location' | 'industry' | 'role',
+    search: string
+  ): Promise<string[]> {
+    if (!['company', 'location', 'industry', 'role'].includes(attribute)) {
+      throw new Error('Invalid attribute');
+    }
+
+    const query = this.contactRepository
+      .createQueryBuilder('contact')
+      .select(`DISTINCT contact.${attribute}`, 'attribute')
+      .where(`contact.${attribute} ILIKE :search`, { search: `${search}%` })
+      .limit(10);
+
+    const results = await query.getRawMany();
+    return results.map((r) => r.attribute);
   }
 
   async update(

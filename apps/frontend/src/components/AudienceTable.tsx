@@ -4,6 +4,7 @@ import { Trash2, Edit } from "lucide-react"
 import { Checkbox } from "./ui/checkbox"
 import { Skeleton } from "./ui/skeleton"
 import { Button } from "./ui/button"
+import { EmptyState } from "./EmptyState"
 
 interface AudienceTableProps {
   contacts: Contact[]
@@ -13,6 +14,8 @@ interface AudienceTableProps {
   onSelectAll: () => void
   onDeleteSelected: () => void
   onEditSelected: (contactId: string) => void
+  areFiltersActive: boolean
+  onAddContact: () => void
 }
 
 export function AudienceTable({
@@ -23,9 +26,27 @@ export function AudienceTable({
   onSelectAll,
   onDeleteSelected,
   onEditSelected,
+  areFiltersActive,
+  onAddContact,
 }: AudienceTableProps) {
   const isAllSelected = contacts.length > 0 && selectedContacts.length === contacts.length
   const numSelected = selectedContacts.length
+
+  if (!loading && contacts.length === 0) {
+    return areFiltersActive ? (
+      <EmptyState
+        title="No contacts found"
+        description="Try adjusting your search or filters."
+      />
+    ) : (
+      <EmptyState
+        title="No contacts yet"
+        description="Get started by adding your first contact."
+        buttonText="Add Contact"
+        onButtonClick={onAddContact}
+      />
+    );
+  }
 
   return (
     <div className="overflow-x-auto">
