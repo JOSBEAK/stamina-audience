@@ -15,7 +15,11 @@ import {
   useDeleteContacts,
   useUpdateContact,
 } from '@/hooks/useContacts';
-import { useSegmentContacts, useAddContactsToSegment } from '@/hooks/useSegments';
+import {
+  useSegmentContacts,
+  useAddContactsToSegment,
+  useRemoveContactsFromSegment,
+} from '@/hooks/useSegments';
 import { AudienceTable } from '@/components/AudienceTable';
 import AddAudienceModal from '@/components/AddAudienceModal';
 import { AddManualForm } from '@/components/AddManualForm';
@@ -74,6 +78,8 @@ export function ContactsPage() {
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isRemoveFromSegmentDialogOpen, setIsRemoveFromSegmentDialogOpen] =
+    useState(false);
   const [editingContact, setEditingContact] = useState<Contact | null>(null);
   const [showFilters, setShowFilters] = useState(false);
   const [sort, setSort] = useState('createdAt:desc');
@@ -214,6 +220,7 @@ export function ContactsPage() {
   const deleteContactsMutation = useDeleteContacts();
   const updateContactMutation = useUpdateContact();
   const addContactsToSegmentMutation = useAddContactsToSegment();
+  const removeContactsFromSegmentMutation = useRemoveContactsFromSegment();
 
   const contacts = data?.data ?? [];
   const totalContacts = data?.total ?? 0;
@@ -328,6 +335,26 @@ export function ContactsPage() {
       },
       error: 'Failed to delete contacts.',
     });
+  };
+
+  const handleRemoveFromSegment = async () => {
+    if (!selectedSegmentId) return;
+
+    toast.promise(
+      removeContactsFromSegmentMutation.mutateAsync({
+        segmentId: selectedSegmentId,
+        contactIds: selectedContacts,
+      }),
+      {
+        loading: 'Removing contacts from segment...',
+        success: () => {
+          setSelectedContacts([]);
+          setIsRemoveFromSegmentDialogOpen(false);
+          return 'Contacts removed from segment successfully!';
+        },
+        error: 'Failed to remove contacts from segment.',
+      }
+    );
   };
 
   const handleAddToSegmentConfirm = (segmentId: string) => {
@@ -513,6 +540,8 @@ export function ContactsPage() {
               onAddToSegment={() => setIsAddToSegmentModalOpen(true)}
               areFiltersActive={areFiltersActive}
               onAddContact={() => setView('add_selection')}
+              isSegmentView={!!selectedSegmentId}
+              onRemoveFromSegment={() => setIsRemoveFromSegmentDialogOpen(true)}
             />
           </div>
 
@@ -569,6 +598,27 @@ export function ContactsPage() {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={handleDeleteSelected}>
               Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={isRemoveFromSegmentDialogOpen}
+        onOpenChange={setIsRemoveFromSegmentDialogOpen}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will remove the selected contacts from this segment, but they
+              will remain in your audience.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleRemoveFromSegment}>
+              Remove
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

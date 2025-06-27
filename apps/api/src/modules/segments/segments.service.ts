@@ -55,6 +55,17 @@ export class SegmentsService {
       .execute();
   }
 
+  async removeMembers(segmentId: string, contactIds: string[]): Promise<void> {
+    if (contactIds.length === 0) {
+      return;
+    }
+
+    await this.segmentMembersRepository.delete({
+      segment: { id: segmentId },
+      contact: { id: In(contactIds) },
+    });
+  }
+
   async findSegmentContacts(segmentId: string, params: ListParamsDto) {
     const {
       page = 1,

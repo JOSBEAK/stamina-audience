@@ -131,3 +131,12 @@ export const addContactsToSegment = async (
 ): Promise<void> => {
   await apiClient.post(`/segments/${segmentId}/contacts`, { contactIds });
 };
+
+export const removeContactsFromSegment = async (
+  segmentId: string,
+  contactIds: string[]
+): Promise<void> => {
+  await apiClient.delete(`/segments/${segmentId}/contacts`, {
+    data: { contactIds },
+  });
+};

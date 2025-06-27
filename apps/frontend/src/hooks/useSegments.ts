@@ -4,6 +4,7 @@ import {
   createSegment,
   addContactsToSegment,
   getSegmentContacts,
+  removeContactsFromSegment,
 } from '../utils/api';
 import { CreateSegmentDto } from '@stamina-project/types';
 
@@ -58,6 +59,25 @@ export const useAddContactsToSegment = () => {
       queryClient.invalidateQueries({
         queryKey: ['segments', variables.segmentId],
       });
+    },
+  });
+};
+
+export const useRemoveContactsFromSegment = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      segmentId,
+      contactIds,
+    }: {
+      segmentId: string;
+      contactIds: string[];
+    }) => removeContactsFromSegment(segmentId, contactIds),
+    onSuccess: (data, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: ['segments', variables.segmentId, 'contacts'],
+      });
+      queryClient.invalidateQueries({ queryKey: ['contacts'] });
     },
   });
 };

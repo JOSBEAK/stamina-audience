@@ -17,6 +17,8 @@ interface AudienceTableProps {
   onAddToSegment: () => void
   areFiltersActive: boolean
   onAddContact: () => void
+  isSegmentView: boolean
+  onRemoveFromSegment: () => void
 }
 
 export function AudienceTable({
@@ -30,6 +32,8 @@ export function AudienceTable({
   onAddToSegment,
   areFiltersActive,
   onAddContact,
+  isSegmentView,
+  onRemoveFromSegment,
 }: AudienceTableProps) {
   const isAllSelected = contacts.length > 0 && selectedContacts.length === contacts.length
   const numSelected = selectedContacts.length
@@ -70,9 +74,13 @@ export function AudienceTable({
                     Edit
                   </Button>
                 )}
-                <Button variant="destructive" size="sm" onClick={onDeleteSelected}>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={isSegmentView ? onRemoveFromSegment : onDeleteSelected}
+                >
                   <Trash2 className="mr-2 h-4 w-4" />
-                  Delete
+                  {isSegmentView ? 'Remove from Segment' : 'Delete'}
                 </Button>
               </div>
             </div>

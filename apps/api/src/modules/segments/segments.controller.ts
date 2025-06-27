@@ -10,6 +10,7 @@ import {
   DefaultValuePipe,
   HttpCode,
   HttpStatus,
+  Delete,
 } from '@nestjs/common';
 import { SegmentsService } from './segments.service';
 import { CreateSegmentDto, AddContactsToSegmentDto } from './dto/segment.dto';
@@ -50,5 +51,14 @@ export class SegmentsController {
     @Body() addContactsDto: AddContactsToSegmentDto
   ) {
     return this.segmentsService.addContacts(id, addContactsDto.contactIds);
+  }
+
+  @Delete(':id/contacts')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  removeContactsFromSegment(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: { contactIds: string[] }
+  ) {
+    return this.segmentsService.removeMembers(id, body.contactIds);
   }
 }
