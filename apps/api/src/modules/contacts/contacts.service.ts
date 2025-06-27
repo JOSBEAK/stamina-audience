@@ -115,7 +115,7 @@ export class ContactsService {
     // A real app would get brandId from auth and add:
     // query.andWhere('contact.brandId = :brandId', { brandId });
 
-    query.orderBy('contact.createdAt', 'ASC').addOrderBy('contact.id', 'ASC');
+    query.orderBy('contact.createdAt', 'DESC').addOrderBy('contact.id', 'DESC');
 
     query.skip(skip).take(take);
 

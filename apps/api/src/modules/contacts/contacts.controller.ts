@@ -63,13 +63,13 @@ export class ContactsController {
 
   @Get()
   @ApiOperation({ summary: 'Find all contacts' })
-  @ApiQuery({ name: 'role', required: false, type: String })
-  @ApiQuery({ name: 'company', required: false, type: String })
-  @ApiQuery({ name: 'location', required: false, type: String })
-  @ApiQuery({ name: 'industry', required: false, type: String })
-  @ApiQuery({ name: 'search', required: false, type: String })
-  @ApiQuery({ name: 'page', required: false, type: Number })
-  @ApiQuery({ name: 'limit', required: false, type: Number })
+  @ApiQuery({ name: 'role', required: true, type: String })
+  @ApiQuery({ name: 'company', required: true, type: String })
+  @ApiQuery({ name: 'location', required: true, type: String })
+  @ApiQuery({ name: 'industry', required: true, type: String })
+  @ApiQuery({ name: 'search', required: true, type: String })
+  @ApiQuery({ name: 'page', required: true, type: Number })
+  @ApiQuery({ name: 'limit', required: true, type: Number })
   @ApiResponse({
     status: 200,
     description: 'A list of contacts.',

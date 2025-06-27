@@ -7,13 +7,11 @@ import {
   Index,
   OneToMany,
 } from 'typeorm';
-import { SegmentMember } from './segment-member.entity';
 import { BroadcastRecipient } from './broadcast-recipient.entity';
-
-// These types are not defined, so we will use a generic 'any' type for now.
-// In a real application, these would be defined interfaces or classes.
-type RelatedFrom = any;
-type CRMLeadCustomAttribute = any;
+import {
+  RelatedFrom,
+  CRMLeadCustomAttribute,
+} from '../modules/contacts/dto/contact.dto';
 
 @Entity('contacts') // Renamed from 'contacts'
 // New indexes from your provided schema. Note: 'lead' is now 'email'.

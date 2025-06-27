@@ -1,5 +1,6 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Plus, Users, ChevronLeft, ChevronRight, AlertTriangle } from 'lucide-react';
+import { toast } from 'sonner';
 import { Contact } from '@stamina-project/types';
 import {
   useContacts,
@@ -26,9 +27,11 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 
+type CsvRow = Record<string, string>;
+
 export function ContactsPage() {
   const [view, setView] = useState('list'); // 'list', 'add_selection', 'add_manual', 'upload_csv', 'field_mapping'
-  const [csvData, setCsvData] = useState<any[]>([]);
+  const [csvData, setCsvData] = useState<CsvRow[]>([]);
   const [csvHeaders, setCsvHeaders] = useState<string[]>([]);
   const [selectedContacts, setSelectedContacts] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -39,6 +42,21 @@ export function ContactsPage() {
   const limit = 10;
   
   const debouncedSearchQuery = useDebounce(searchQuery, 500);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "k" && (event.metaKey || event.ctrlKey)) {
+        event.preventDefault()
+        searchInputRef.current?.focus()
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown)
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown)
+    }
+  }, [])
 
   const { data, isLoading } = useContacts({
     search: debouncedSearchQuery,
@@ -66,23 +84,27 @@ export function ContactsPage() {
     }
   };
 
-  const handleDataParsed = (data: any[], headers: string[]) => {
+  const handleDataParsed = (data: CsvRow[], headers: string[]) => {
     setCsvData(data);
     setCsvHeaders(headers);
     setView('field_mapping');
   };
 
   const handleMappingConfirm = async (mappedData: Partial<Contact>[]) => {
-    await addContactsMutation.mutateAsync(mappedData);
-    setView('list');
+    toast.promise(addContactsMutation.mutateAsync(mappedData), {
+      loading: "Adding contacts...",
+      success: "Contacts added successfully!",
+      error: "Failed to add contacts.",
+    })
+    setView("list")
   };
 
   const handleSelectionChange = (contactId: string) => {
     setSelectedContacts((prev) =>
       prev.includes(contactId)
         ? prev.filter((id) => id !== contactId)
-        : [...prev, contactId]
-    );
+        : [...prev, contactId],
+    )
   };
 
   const handleSelectAll = () => {
@@ -96,36 +118,55 @@ export function ContactsPage() {
   const handleEditSelected = (contactId: string) => {
     const contactToEdit = contacts.find((c) => c.id === contactId);
     if (contactToEdit) {
-      setEditingContact(contactToEdit);
-      setView('add_manual');
+      setEditingContact(contactToEdit)
+      setView("add_manual")
     }
   };
 
   const handleCloseForm = () => {
-    setEditingContact(null);
-    setView('list');
-  };
+    setEditingContact(null)
+    setView("list")
+  }
 
   const handleFormSubmit = async (contactData: Partial<Contact>) => {
     if (editingContact) {
-      await updateContactMutation.mutateAsync({
-        id: editingContact.id,
-        contactData,
-      });
+      toast.promise(
+        updateContactMutation.mutateAsync({
+          id: editingContact.id,
+          contactData,
+        }),
+        {
+          loading: "Updating contact...",
+          success: () => {
+            handleCloseForm()
+            return "Contact updated successfully!"
+          },
+          error: "Failed to update contact.",
+        },
+      )
     } else {
-      await addContactsMutation.mutateAsync([contactData]);
+      toast.promise(addContactsMutation.mutateAsync([contactData]), {
+        loading: "Adding contact...",
+        success: () => {
+          handleCloseForm()
+          return "Contact added successfully!"
+        },
+        error: "Failed to add contact.",
+      })
     }
-    handleCloseForm();
-  };
+  }
 
   const handleDeleteSelected = async () => {
-    await deleteContactsMutation.mutateAsync(selectedContacts, {
-      onSuccess: () => {
-        setSelectedContacts([]);
-        setIsDeleteDialogOpen(false);
+    toast.promise(deleteContactsMutation.mutateAsync(selectedContacts), {
+      loading: "Deleting contacts...",
+      success: () => {
+        setSelectedContacts([])
+        setIsDeleteDialogOpen(false)
+        return "Contacts deleted successfully!"
       },
-    });
-  };
+      error: "Failed to delete contacts.",
+    })
+  }
 
   return (
     <div className="p-8 border border-border rounded-lg">

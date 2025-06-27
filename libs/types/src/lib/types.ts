@@ -14,7 +14,7 @@ export enum Industry {
 }
 
 // These types are not defined, so we will use a generic 'any' type for now.
-const RelatedFromSchema = z.any();
+export const RelatedFromSchema = z.any();
 const CRMLeadCustomAttributeSchema = z.any();
 
 export const ContactSchema = z.object({

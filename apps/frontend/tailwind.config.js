@@ -20,6 +20,10 @@ module.exports = {
       },
     },
     extend: {
+      gridTemplateColumns: {
+        'audience-table':
+          '48px minmax(380px, 1fr) minmax(80px, 1fr) minmax(140px, 1fr) minmax(120px, 1fr) minmax(120px, 1fr)',
+      },
       colors: {
         border: 'hsl(var(--border))',
         input: 'hsl(var(--input))',

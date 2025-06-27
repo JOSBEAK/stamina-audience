@@ -62,7 +62,7 @@ const UploadCsvModal: React.FC<UploadCsvModalProps> = ({
           <p>
             Download our sample .csv file.{' '}
             <a
-              href="/sample.csv"
+              href="/sample_people_data.csv"
               download
               className={cn(buttonVariants({ variant: 'link' }), 'px-0 underline cursor-pointer')}
             >

@@ -14,8 +14,21 @@ import {
 import { Industry } from '@stamina-project/types';
 
 // These types are not defined, so we will use a generic 'any' type for now.
-type RelatedFrom = any;
-type CRMLeadCustomAttribute = any;
+export type RelatedFromType = {
+  LEAD: 'lead';
+};
+
+export class RelatedFrom {
+  value: string;
+  type: RelatedFromType;
+}
+
+export type CRMLeadCustomAttribute = {
+  id: string;
+  type: string;
+  name: string;
+  value: any;
+};
 
 export class CreateContactDto {
   @ApiProperty({ description: 'First name of the contact', example: 'John' })
