@@ -13,9 +13,7 @@ import {
   CRMLeadCustomAttribute,
 } from '../modules/contacts/dto/contact.dto';
 
-@Entity('contacts') // Renamed from 'contacts'
-// New indexes from your provided schema. Note: 'lead' is now 'email'.
-@Index(['brandId', 'crmListId', 'owners'])
+@Entity('contacts')
 export class Contact {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -29,6 +27,7 @@ export class Contact {
   @Column({ type: 'varchar', length: 255, unique: true })
   email: string; // Renamed from 'lead'
 
+  @Index()
   @Column({ type: 'varchar', length: 255 })
   role: string; // Renamed from 'title'
 
@@ -38,6 +37,7 @@ export class Contact {
   @Column({ type: 'varchar' })
   avatar: string; // Renamed from 'avatarUrl'
 
+  @Index()
   @Column({ type: 'varchar' })
   industry: string; // Added as it was missing but required to be non-nullable
 
@@ -87,6 +87,7 @@ export class Contact {
   })
   lastInteractionAt?: Date;
 
+  @Index()
   @Column({ type: 'varchar', nullable: true })
   company?: string;
 

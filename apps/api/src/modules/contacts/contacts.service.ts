@@ -165,7 +165,7 @@ export class ContactsService {
       .createQueryBuilder('contact')
       .select(`DISTINCT contact.${attribute}`, 'attribute')
       .where(`contact.${attribute} ILIKE :search`, { search: `${search}%` })
-      .limit(10);
+      .limit(4);
 
     const results = await query.getRawMany();
     return results.map((r) => r.attribute);

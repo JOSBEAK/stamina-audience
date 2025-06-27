@@ -5,6 +5,8 @@ import {
   ChevronLeft,
   ChevronRight,
   X,
+  ChevronUp,
+  ChevronDown,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Contact } from '@stamina-project/types';
@@ -369,8 +371,10 @@ export function ContactsPage() {
           <Button
             variant="outline"
             onClick={() => setShowFilters(!showFilters)}
+            className='gap-2'
           >
             Filters
+            {showFilters ?<ChevronDown className='w-3 h-3' /> : <ChevronUp className='w-3 h-3' />}
           </Button>
         </div>
       </div>
