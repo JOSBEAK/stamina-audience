@@ -1,25 +1,89 @@
 import React, { useState } from 'react';
-import { useSegments, useCreateSegment } from '@/hooks/useSegments';
+import {
+  useSegments,
+  useCreateSegment,
+  useSoftDeleteSegment,
+  useDeletedSegments,
+  useRestoreSegment,
+} from '@/hooks/useSegments';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { List, Plus, Users } from 'lucide-react';
+import { Plus, ArrowUpDown, Info, Trash2, Undo } from 'lucide-react';
 import { toast } from 'sonner';
 import { Segment } from '@stamina-project/types';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { Checkbox } from '@/components/ui/checkbox';
+import { useDebounce } from '@/hooks/useDebounce';
+import { Skeleton } from './ui/skeleton';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import { Badge } from './ui/badge';
+import { format, formatDistanceToNow } from 'date-fns';
+import { useContacts } from '@/hooks/useContacts';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from '@/components/ui/tabs';
+import { SegmentsTable } from './SegmentsTable';
+import { DeletedSegmentsTable } from './DeletedSegmentsTable';
 
 interface SegmentListProps {
   onSelectSegment: (segmentId: string | null) => void;
-  selectedSegmentId: string | null;
   onSegmentCreated: (segment: Segment) => void;
 }
 
 export function SegmentList({
   onSelectSegment,
-  selectedSegmentId,
   onSegmentCreated,
 }: SegmentListProps) {
   const [isCreating, setIsCreating] = useState(false);
   const [newSegmentName, setNewSegmentName] = useState('');
-  const { data: segments, isLoading } = useSegments();
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sort, setSort] = useState('updatedAt:desc');
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [selectedSegments, setSelectedSegments] = useState<string[]>([]);
+
+  const debouncedSearch = useDebounce(searchQuery, 300);
+
+  const { data: segments, isLoading, refetch: refetchSegments } = useSegments({
+    search: debouncedSearch,
+    sort,
+  });
+
+  const { data: deletedSegments, refetch: refetchDeleted } =
+    useDeletedSegments();
+  const softDeleteMutation = useSoftDeleteSegment();
+  const restoreMutation = useRestoreSegment();
+
+  const { data: allContactsData } = useContacts(
+    { limit: 1 },
+    { enabled: true }
+  );
+  const allContactsCount = allContactsData?.total ?? 0;
+
   const createSegmentMutation = useCreateSegment();
 
   const handleCreateSegment = () => {
@@ -34,63 +98,192 @@ export function SegmentList({
         setNewSegmentName('');
         setIsCreating(false);
         onSegmentCreated(newSegment);
+        refetchSegments();
         return 'Segment created successfully! Now add some participants.';
       },
       error: 'Failed to create segment.',
     });
   };
 
+  const handleDeleteConfirm = () => {
+    if (selectedSegments.length === 0) return;
+
+    const promise = Promise.all(
+      selectedSegments.map((id) => softDeleteMutation.mutateAsync(id))
+    );
+
+    toast.promise(promise, {
+      loading: `Deleting ${selectedSegments.length} segment(s)...`,
+      success: () => {
+        setSelectedSegments([]);
+        refetchSegments();
+        refetchDeleted();
+        setIsDeleteDialogOpen(false);
+        return 'Segment(s) moved to recently deleted.';
+      },
+      error: 'Failed to delete segment(s).',
+    });
+  };
+
+  const handleRestore = (id: string) => {
+    toast.promise(restoreMutation.mutateAsync(id), {
+      loading: 'Restoring segment...',
+      success: () => {
+        refetchSegments();
+        refetchDeleted();
+        return 'Segment restored successfully!';
+      },
+      error: 'Failed to restore segment.',
+    });
+  };
+
+  const handleSort = (field: string) => {
+    const [currentField, currentDirection] = sort.split(':');
+    if (currentField === field) {
+      setSort(`${field}:${currentDirection === 'asc' ? 'desc' : 'asc'}`);
+    } else {
+      setSort(`${field}:asc`);
+    }
+  };
+
+  const renderSortArrow = (field: string) => {
+    const [currentField, currentDirection] = sort.split(':');
+    if (currentField !== field) return null;
+    return <ArrowUpDown className="ml-2 h-4 w-4" />;
+  };
+
+  const handleSelectionChange = (segmentId: string) => {
+    setSelectedSegments((prev) =>
+      prev.includes(segmentId)
+        ? prev.filter((id) => id !== segmentId)
+        : [...prev, segmentId]
+    );
+  };
+
+  const handleSelectAll = () => {
+    if (selectedSegments.length === segments?.length) {
+      setSelectedSegments([]);
+    } else {
+      setSelectedSegments(segments?.map((s) => s.id) || []);
+    }
+  };
+
+  const isAllSelected =
+    segments &&
+    selectedSegments.length === segments.length &&
+    segments.length > 0
+      ? true
+      : false;
+
   return (
-    <div className="w-64 border-r border-border pr-4">
-      <h2 className="text-lg font-semibold flex items-center mb-4">
-        <List className="mr-2 h-5 w-5" />
-        Segments
-      </h2>
-      <div
-        className={`flex items-center p-2 rounded-lg cursor-pointer ${!selectedSegmentId ? 'bg-muted' : 'hover:bg-muted/50'}`}
-        onClick={() => onSelectSegment(null)}
-      >
-        <Users className="mr-2 h-4 w-4" />
-        <span>All Contacts</span>
-      </div>
-      {isLoading && <div className="p-2">Loading segments...</div>}
-      <ul className="space-y-1 mt-2">
-        {segments?.map((segment: Segment) => (
-          <li
-            key={segment.id}
-            className={`p-2 rounded-lg cursor-pointer ${selectedSegmentId === segment.id ? 'bg-muted' : 'hover:bg-muted/50'}`}
-            onClick={() => onSelectSegment(segment.id)}
-          >
-            {segment.name}
-            {/* We will use the memberCount later */}
-            {/* <span className="text-sm text-muted-foreground ml-2">{segment.memberCount || 0}</span> */}
-          </li>
-        ))}
-      </ul>
-      {isCreating ? (
-        <div className="mt-4 space-y-2">
-          <Input
-            placeholder="New segment name"
-            value={newSegmentName}
-            onChange={(e) => setNewSegmentName(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleCreateSegment()}
-            autoFocus
-          />
-          <div className="flex justify-end space-x-2">
-            <Button variant="ghost" size="sm" onClick={() => setIsCreating(false)}>
-              Cancel
+    <div className="mt-6">
+      <Tabs defaultValue="all">
+        <div className="flex justify-between items-center">
+          <TabsList>
+            <TabsTrigger value="all">Segments</TabsTrigger>
+            <TabsTrigger value="deleted">
+              Recently Deleted ({deletedSegments?.length || 0})
+            </TabsTrigger>
+          </TabsList>
+          {isCreating ? (
+            <div className="flex items-center gap-2">
+              <Input
+                placeholder="New segment name"
+                value={newSegmentName}
+                onChange={(e) => setNewSegmentName(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleCreateSegment()}
+                autoFocus
+                className="w-auto"
+              />
+              <Button size="sm" onClick={handleCreateSegment}>
+                Create
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsCreating(false)}
+              >
+                Cancel
+              </Button>
+            </div>
+          ) : (
+            <Button onClick={() => setIsCreating(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              Create Segment
             </Button>
-            <Button size="sm" onClick={handleCreateSegment}>
-              Create
-            </Button>
-          </div>
+          )}
         </div>
-      ) : (
-        <Button variant="outline" size="sm" className="mt-4 w-full" onClick={() => setIsCreating(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Create Segment
-        </Button>
-      )}
+        <TabsContent value="all">
+          <div className="flex justify-between items-center my-4">
+            {selectedSegments.length > 0 ? (
+              <div className="flex items-center gap-4">
+                <span className="text-sm font-medium">
+                  {selectedSegments.length} selected
+                </span>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => setIsDeleteDialogOpen(true)}
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Delete
+                </Button>
+              </div>
+            ) : (
+              <div className="w-1/3">
+                <Input
+                  placeholder="Search lists..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
+            )}
+          </div>
+          <SegmentsTable
+            isLoading={isLoading}
+            segments={segments}
+            selectedSegments={selectedSegments}
+            isAllSelected={isAllSelected}
+            allContactsCount={allContactsCount}
+            onSelectAll={handleSelectAll}
+            onSelectionChange={handleSelectionChange}
+            onSelectSegment={onSelectSegment}
+            onSort={handleSort}
+            renderSortArrow={renderSortArrow}
+          />
+        </TabsContent>
+        <TabsContent value="deleted">
+          <DeletedSegmentsTable
+            deletedSegments={deletedSegments}
+            onRestore={handleRestore}
+          />
+        </TabsContent>
+      </Tabs>
+
+      <AlertDialog
+        open={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will delete the{' '}
+              <span className="font-semibold">
+                {selectedSegments.length} segment(s)
+              </span>
+              . They will be moved to recently deleted and will be permanently
+              removed after 90 days.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteConfirm}>
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 } 

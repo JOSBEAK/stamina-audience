@@ -43,6 +43,7 @@ import { ContactFilters } from '@/components/ContactFilters';
 import { SegmentList } from '@/components/SegmentList';
 import { AddToSegmentModal } from '@/components/AddToSegmentModal';
 import { AddParticipantsModal } from '@/components/AddParticipantsModal';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 
 type CsvRow = Record<string, string>;
 
@@ -57,19 +58,10 @@ type UseContactsParams = {
   industry: string;
 };
 
-const useGetContacts = (
-  selectedSegmentId: string | null,
-  params: UseContactsParams
-) => {
-  if (selectedSegmentId) {
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    return useSegmentContacts(selectedSegmentId, params);
-  }
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  return useContacts(params);
-};
-
 export function ContactsPage() {
+  const { segmentId } = useParams<{ segmentId: string }>();
+  const navigate = useNavigate();
+  const routeLocation = useLocation();
   const [view, setView] = useState('list');
   const [csvData, setCsvData] = useState<CsvRow[]>([]);
   const [csvHeaders, setCsvHeaders] = useState<string[]>([]);
@@ -99,7 +91,6 @@ export function ContactsPage() {
   const [isLocationLoading, setIsLocationLoading] = useState(false);
   const [isIndustryLoading, setIsIndustryLoading] = useState(false);
   const [isRoleLoading, setIsRoleLoading] = useState(false);
-  const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
   const [isAddToSegmentModalOpen, setIsAddToSegmentModalOpen] = useState(false);
   const [newlyCreatedSegment, setNewlyCreatedSegment] = useState<Segment | null>(
     null
@@ -121,7 +112,10 @@ export function ContactsPage() {
   const debouncedRoleSearch = useDebounce(roleSearch, 300);
   const debouncedSearchQuery = useDebounce(searchQuery, 500);
 
-  const { data, isLoading } = useGetContacts(selectedSegmentId, {
+  const isAllContactsView = routeLocation.pathname === '/contacts/all';
+  const isSegmentListView = routeLocation.pathname === '/contacts';
+
+  const listParams = {
     search: debouncedSearchQuery,
     page: currentPage,
     limit,
@@ -130,11 +124,26 @@ export function ContactsPage() {
     company,
     location,
     industry,
-  });
+  };
+
+  const { data: segmentContactsData, isLoading: isSegmentContactsLoading } =
+    useSegmentContacts(segmentId, listParams, {
+      enabled: !!segmentId,
+    });
+
+  const { data: allContactsData, isLoading: isAllContactsLoading } =
+    useContacts(listParams, {
+      enabled: isAllContactsView,
+    });
+
+  const data = isAllContactsView ? allContactsData : segmentContactsData;
+  const isLoading = isAllContactsView
+    ? isAllContactsLoading
+    : isSegmentContactsLoading;
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [selectedSegmentId]);
+  }, [segmentId]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -338,11 +347,11 @@ export function ContactsPage() {
   };
 
   const handleRemoveFromSegment = async () => {
-    if (!selectedSegmentId) return;
+    if (!segmentId) return;
 
     toast.promise(
       removeContactsFromSegmentMutation.mutateAsync({
-        segmentId: selectedSegmentId,
+        segmentId: segmentId,
         contactIds: selectedContacts,
       }),
       {
@@ -438,6 +447,36 @@ export function ContactsPage() {
     return null;
   };
 
+  if (isSegmentListView) {
+    return (
+      <div className="p-8 border border-border rounded-lg">
+        <div className="flex justify-between items-center mb-4 pb-4 border-b">
+          <div className="flex items-center space-x-2">
+            <Users className="w-6 h-6 text-gray-500" />
+            <h1 className="text-xl font-semibold">Audience Segments</h1>
+          </div>
+          <Button onClick={() => setView('add_selection')}>
+            <Plus size={18} className="mr-2" />
+            Add People
+          </Button>
+        </div>
+        <SegmentList
+          onSelectSegment={(id) =>
+            id ? navigate(`/contacts/segments/${id}`) : navigate('/contacts/all')
+          }
+          onSegmentCreated={handleSegmentCreated}
+        />
+        {renderContent()}
+        <AddParticipantsModal
+          isOpen={!!newlyCreatedSegment}
+          onClose={() => setNewlyCreatedSegment(null)}
+          onConfirm={handleAddParticipantsConfirm}
+          segmentName={newlyCreatedSegment?.name ?? ''}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="p-8 border border-border rounded-lg">
       <div className="flex justify-between items-center mb-4 pb-4 border-b">
@@ -452,16 +491,11 @@ export function ContactsPage() {
       </div>
 
       <div className="flex">
-        <SegmentList
-          onSelectSegment={setSelectedSegmentId}
-          selectedSegmentId={selectedSegmentId}
-          onSegmentCreated={handleSegmentCreated}
-        />
-        <div className="flex-1 pl-4">
+        <div className="flex-1">
           <div className="flex justify-between items-center mb-6">
             <div className="flex items-center">
               <h1 className="text-2xl font-semibold">
-                {selectedSegmentId ? 'Segment' : 'All Contacts'}
+                {isAllContactsView ? 'All Contacts' : 'Segment'}
               </h1>
               <span className="text-sm text-muted-foreground ml-2 border border-border px-2 py-1 rounded-lg">
                 {totalContacts} people
@@ -540,7 +574,7 @@ export function ContactsPage() {
               onAddToSegment={() => setIsAddToSegmentModalOpen(true)}
               areFiltersActive={areFiltersActive}
               onAddContact={() => setView('add_selection')}
-              isSegmentView={!!selectedSegmentId}
+              isSegmentView={!!segmentId}
               onRemoveFromSegment={() => setIsRemoveFromSegmentDialogOpen(true)}
             />
           </div>
@@ -583,7 +617,7 @@ export function ContactsPage() {
         onClose={() => setIsAddToSegmentModalOpen(false)}
         onConfirm={handleAddToSegmentConfirm}
         contactCount={selectedContacts.length}
-        currentSegmentId={selectedSegmentId}
+        currentSegmentId={segmentId}
       />
 
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>

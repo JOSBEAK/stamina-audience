@@ -6,6 +6,7 @@ import {
   ManyToOne,
   JoinColumn,
   Index,
+  UpdateDateColumn,
 } from 'typeorm';
 import { Contact } from './contact.entity';
 import { Segment } from './segment.entity';
@@ -16,17 +17,23 @@ export class SegmentMember {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ name: 'contact_id' })
-  contactId: string;
+  @Index()
+  @Column()
+  locationId: string;
 
-  @Column({ name: 'segment_id' })
+  @Index()
+  @Column({ type: 'uuid', name: 'segment_id' })
   segmentId: string;
 
-  @Column({ name: 'is_dynamic', default: false })
-  isDynamic: boolean;
+  @Index()
+  @Column({ type: 'uuid', name: 'contact_id' })
+  contactId: string;
 
   @CreateDateColumn({ name: 'added_at' })
   addedAt: Date;
+
+  @UpdateDateColumn({ name: 'updated_at' })
+  updatedAt: Date;
 
   @ManyToOne(() => Contact, (contact) => contact.segmentMembers, {
     onDelete: 'CASCADE',

@@ -94,8 +94,11 @@ export const getPresignedUrl = async (
   return data;
 };
 
-export const getSegments = async (): Promise<Segment[]> => {
-  const { data } = await apiClient.get('/segments');
+export const getSegments = async (params: {
+  search?: string;
+  sort?: string;
+}): Promise<Segment[]> => {
+  const { data } = await apiClient.get('/segments', { params });
   return data;
 };
 
@@ -130,6 +133,19 @@ export const addContactsToSegment = async (
   contactIds: string[]
 ): Promise<void> => {
   await apiClient.post(`/segments/${segmentId}/contacts`, { contactIds });
+};
+
+export const softDeleteSegment = async (segmentId: string): Promise<void> => {
+  await apiClient.delete(`/segments/${segmentId}`);
+};
+
+export const getDeletedSegments = async (): Promise<Segment[]> => {
+  const { data } = await apiClient.get('/segments/deleted');
+  return data;
+};
+
+export const restoreSegment = async (segmentId: string): Promise<void> => {
+  await apiClient.post(`/segments/${segmentId}/restore`);
 };
 
 export const removeContactsFromSegment = async (

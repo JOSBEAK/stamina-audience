@@ -7,7 +7,6 @@ import {
   Index,
   OneToMany,
 } from 'typeorm';
-import { BroadcastRecipient } from './broadcast-recipient.entity';
 import { SegmentMember } from './segment-member.entity';
 import {
   RelatedFrom,
@@ -18,6 +17,10 @@ import {
 export class Contact {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  @Index()
+  @Column()
+  locationId: string;
 
   // --- Fields that MUST be non-nullable, per your instruction ---
 
@@ -226,8 +229,8 @@ export class Contact {
   })
   searchVector: string;
 
-  @OneToMany(() => BroadcastRecipient, (recipient) => recipient.contact)
-  broadcastRecipients: BroadcastRecipient[];
+  // @OneToMany(() => BroadcastRecipient, (recipient) => recipient.contact)
+  // broadcastRecipients: BroadcastRecipient[];
 
   @OneToMany(() => SegmentMember, (member) => member.contact)
   segmentMembers: SegmentMember[];

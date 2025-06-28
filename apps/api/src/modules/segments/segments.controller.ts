@@ -27,8 +27,13 @@ export class SegmentsController {
   }
 
   @Get()
-  findAll() {
-    return this.segmentsService.findAll();
+  findAll(@Query('search') search?: string, @Query('sort') sort?: string) {
+    return this.segmentsService.findAll({ search, sort });
+  }
+
+  @Get('deleted')
+  findDeleted() {
+    return this.segmentsService.findDeleted();
   }
 
   @Get(':id')
@@ -51,6 +56,18 @@ export class SegmentsController {
     @Body() addContactsDto: AddContactsToSegmentDto
   ) {
     return this.segmentsService.addContacts(id, addContactsDto.contactIds);
+  }
+
+  @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  softDelete(@Param('id', ParseUUIDPipe) id: string) {
+    return this.segmentsService.softDelete(id);
+  }
+
+  @Post(':id/restore')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  restore(@Param('id', ParseUUIDPipe) id: string) {
+    return this.segmentsService.restore(id);
   }
 
   @Delete(':id/contacts')

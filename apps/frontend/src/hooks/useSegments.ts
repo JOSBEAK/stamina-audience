@@ -5,18 +5,23 @@ import {
   addContactsToSegment,
   getSegmentContacts,
   removeContactsFromSegment,
+  softDeleteSegment,
+  getDeletedSegments,
+  restoreSegment,
 } from '../utils/api';
 import { CreateSegmentDto } from '@stamina-project/types';
 
-export const useSegments = () => {
+export const useSegments = (
+  params: { search?: string; sort?: string } = {}
+) => {
   return useQuery({
-    queryKey: ['segments'],
-    queryFn: getSegments,
+    queryKey: ['segments', params],
+    queryFn: () => getSegments(params),
   });
 };
 
 export const useSegmentContacts = (
-  segmentId: string,
+  segmentId: string | undefined,
   params: {
     page: number;
     limit: number;
@@ -26,12 +31,13 @@ export const useSegmentContacts = (
     company?: string;
     location?: string;
     industry?: string;
-  }
+  },
+  options: { enabled: boolean }
 ) => {
   return useQuery({
     queryKey: ['segments', segmentId, 'contacts', params],
-    queryFn: () => getSegmentContacts(segmentId, params),
-    enabled: !!segmentId,
+    queryFn: () => getSegmentContacts(segmentId!, params),
+    enabled: options.enabled && !!segmentId,
   });
 };
 
@@ -78,6 +84,33 @@ export const useRemoveContactsFromSegment = () => {
         queryKey: ['segments', variables.segmentId, 'contacts'],
       });
       queryClient.invalidateQueries({ queryKey: ['contacts'] });
+    },
+  });
+};
+
+export const useDeletedSegments = () => {
+  return useQuery({
+    queryKey: ['segments', 'deleted'],
+    queryFn: getDeletedSegments,
+  });
+};
+
+export const useSoftDeleteSegment = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: softDeleteSegment,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['segments'] });
+    },
+  });
+};
+
+export const useRestoreSegment = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: restoreSegment,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['segments'] });
     },
   });
 };

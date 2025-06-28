@@ -22,6 +22,16 @@ const router = createBrowserRouter([
       {
         path: 'contacts',
         element: <ContactsPage />,
+        children: [
+          {
+            path: 'all',
+            element: <ContactsPage />,
+          },
+          {
+            path: 'segments/:segmentId',
+            element: <ContactsPage />,
+          },
+        ],
       },
       {
         path: 'broadcasts',

@@ -10,10 +10,14 @@ import {
   GetContactsParams,
 } from '../utils/api';
 
-export const useContacts = (params: GetContactsParams) => {
+export const useContacts = (
+  params: GetContactsParams,
+  options: { enabled: boolean }
+) => {
   return useQuery({
     queryKey: ['contacts', params],
     queryFn: () => getContacts(params),
+    enabled: options?.enabled,
   });
 };
 

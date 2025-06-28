@@ -111,6 +111,13 @@ export interface Segment {
   name: string;
   type: 'static' | 'dynamic';
   createdAt: string;
+  updatedAt: string;
+  deletedAt?: string | null;
+  memberCount?: number;
+  usedInCount?: number;
+  creator?: string | null;
+  folder?: string | null;
+  object?: 'Contact';
   // This could be enhanced to show a count instead of the full member list for performance
   members?: { id: string }[];
 }

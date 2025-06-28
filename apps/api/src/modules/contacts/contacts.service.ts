@@ -5,6 +5,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Contact } from '../../entities/contact.entity';
 import { CreateContactDto, UpdateContactDto } from './dto/contact.dto';
+import { ConfigService } from '@nestjs/config';
 
 interface FindAllParams {
   role?: string;
@@ -20,10 +21,14 @@ interface FindAllParams {
 @Injectable()
 export class ContactsService {
   private readonly logger = new Logger(ContactsService.name);
+  private readonly locationId: string;
   constructor(
     @InjectRepository(Contact)
-    private readonly contactRepository: Repository<Contact> // private readonly sqsService: SqsService
-  ) {}
+    private readonly contactRepository: Repository<Contact>, // private readonly sqsService: SqsService
+    private readonly configService: ConfigService
+  ) {
+    this.locationId = this.configService.get<string>('LOCATION_ID');
+  }
 
   async queueCsvProcessing() {
     this.logger.warn('SQS is disabled. CSV processing is not queued.');
@@ -45,13 +50,18 @@ export class ContactsService {
   }
 
   create(createContactDto: CreateContactDto): Promise<Contact> {
-    const contact = this.contactRepository.create(createContactDto);
+    const contact = this.contactRepository.create({
+      ...createContactDto,
+      locationId: this.locationId,
+    });
     this.logger.log(`Creating contact for email: ${createContactDto.email}`);
     return this.contactRepository.save(contact);
   }
 
   createBatch(createContactDtos: CreateContactDto[]): Promise<Contact[]> {
-    const contacts = this.contactRepository.create(createContactDtos);
+    const contacts = this.contactRepository.create(
+      createContactDtos.map((c) => ({ ...c, locationId: this.locationId }))
+    );
     return this.contactRepository.save(contacts);
   }
 
@@ -69,7 +79,11 @@ export class ContactsService {
       take = 10,
       skip = 0,
     } = params;
-    const query = this.contactRepository.createQueryBuilder('contact');
+    const query = this.contactRepository
+      .createQueryBuilder('contact')
+      .where('contact.locationId = :locationId', {
+        locationId: this.locationId,
+      });
 
     if (role) {
       query.andWhere('contact.role = :role', { role });
@@ -128,7 +142,10 @@ export class ContactsService {
   }
 
   async findOne(id: string): Promise<Contact> {
-    const contact = await this.contactRepository.findOneBy({ id });
+    const contact = await this.contactRepository.findOneBy({
+      id,
+      locationId: this.locationId,
+    });
     if (!contact) {
       throw new NotFoundException(`Contact with ID "${id}" not found`);
     }
@@ -140,6 +157,9 @@ export class ContactsService {
       .createQueryBuilder('contact')
       .select('DISTINCT(contact.location)', 'location')
       .where("contact.location IS NOT NULL AND contact.location != ''")
+      .andWhere('contact.locationId = :locationId', {
+        locationId: this.locationId,
+      })
       .getRawMany();
     return locations.map((l) => l.location);
   }
@@ -149,6 +169,9 @@ export class ContactsService {
       .createQueryBuilder('contact')
       .select('DISTINCT(contact.company)', 'company')
       .where("contact.company IS NOT NULL AND contact.company != ''")
+      .andWhere('contact.locationId = :locationId', {
+        locationId: this.locationId,
+      })
       .getRawMany();
     return companies.map((c) => c.company);
   }
@@ -165,6 +188,9 @@ export class ContactsService {
       .createQueryBuilder('contact')
       .select(`DISTINCT contact.${attribute}`, 'attribute')
       .where(`contact.${attribute} ILIKE :search`, { search: `${search}%` })
+      .andWhere('contact.locationId = :locationId', {
+        locationId: this.locationId,
+      })
       .limit(4);
 
     const results = await query.getRawMany();
@@ -175,25 +201,34 @@ export class ContactsService {
     id: string,
     updateContactDto: UpdateContactDto
   ): Promise<Contact> {
-    const contact = await this.contactRepository.preload({
-      id: id,
-      ...updateContactDto,
-    });
-    if (!contact) {
-      throw new NotFoundException(`Contact with ID "${id}" not found`);
-    }
-    return this.contactRepository.save(contact);
+    const contact = await this.findOne(id);
+
+    const updatedContact = this.contactRepository.merge(
+      contact,
+      updateContactDto
+    );
+    return this.contactRepository.save(updatedContact);
   }
 
   async remove(id: string): Promise<void> {
-    const result = await this.contactRepository.delete(id);
+    const result = await this.contactRepository.delete({
+      id,
+      locationId: this.locationId,
+    });
     if (result.affected === 0) {
       throw new NotFoundException(`Contact with ID "${id}" not found`);
     }
   }
 
   async removeBatch(ids: string[]): Promise<void> {
-    const result = await this.contactRepository.delete(ids);
+    const result = await this.contactRepository
+      .createQueryBuilder()
+      .delete()
+      .from(Contact)
+      .where('id IN (:...ids)', { ids })
+      .andWhere('locationId = :locationId', { locationId: this.locationId })
+      .execute();
+
     if (result.affected === 0) {
       throw new NotFoundException(`No contacts found with the provided IDs.`);
     }

@@ -7,17 +7,14 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
 import { ContactsModule } from '../modules/contacts/contacts.module';
-import { BroadcastsModule } from '../modules/broadcasts/broadcasts.module';
-import { WebhookModule } from '../modules/webhook/webhook.module';
+// import { BroadcastsModule } from '../modules/broadcasts/broadcasts.module';
+// import { WebhookModule } from '../modules/webhook/webhook.module';
 import { UploadsModule } from '../modules/uploads/uploads.module';
 // import { QueueModule } from '../modules/queue/queue.module'; // Temporarily disabled
 import { SegmentsModule } from '../modules/segments/segments.module';
 // import { QueueModule } from '../modules/queue/queue.module'; // Temporarily disabled
 
 import { Contact } from '../entities/contact.entity';
-import { Broadcast } from '../entities/broadcast.entity';
-import { BroadcastRecipient } from '../entities/broadcast-recipient.entity';
-import { BroadcastAnalyticsTimeseries } from '../entities/broadcast-analytics-timeseries.entity';
 import { Segment } from '../entities/segment.entity';
 import { SegmentMember } from '../entities/segment-member.entity';
 
@@ -33,14 +30,7 @@ import { SegmentMember } from '../entities/segment-member.entity';
       useFactory: (configService: ConfigService) => ({
         type: 'postgres',
         url: configService.get<string>('TYPEORM_URL'),
-        entities: [
-          Contact,
-          Broadcast,
-          BroadcastRecipient,
-          BroadcastAnalyticsTimeseries,
-          Segment,
-          SegmentMember,
-        ],
+        entities: [Contact, Segment, SegmentMember],
         migrations: [__dirname + '/../migrations/*{.ts,.js}'],
         synchronize: false, // Note: disable in production
       }),
@@ -63,10 +53,8 @@ import { SegmentMember } from '../entities/segment-member.entity';
     }),
     */
     ContactsModule,
-    BroadcastsModule,
     UploadsModule,
     // QueueModule, // Temporarily disabled
-    WebhookModule,
     SegmentsModule,
   ],
   controllers: [AppController],

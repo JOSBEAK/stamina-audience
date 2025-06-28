@@ -1,7 +1,6 @@
 import { Module } from '@nestjs/common';
 import { SqsModule } from '@ssut/nestjs-sqs';
 import { CsvWorker } from './csv-worker';
-import { BroadcastWorker } from './broadcast-worker';
 
 @Module({
   imports: [
@@ -19,6 +18,6 @@ import { BroadcastWorker } from './broadcast-worker';
       producers: [],
     }),
   ],
-  providers: [CsvWorker, BroadcastWorker],
+  providers: [CsvWorker],
 })
 export class QueueModule {}
