@@ -7,118 +7,123 @@ import { SegmentMember } from '../../entities/segment-member.entity';
 import { Contact } from '../../entities/contact.entity';
 import { ListParamsDto } from '../common/dto/list-params.dto';
 import { ConfigService } from '@nestjs/config';
+import { IsUUID } from 'class-validator';
+
+export class AddContactsToSegmentDto {
+  @IsUUID('all', { each: true })
+  contactIds: string[];
+}
 
 @Injectable()
 export class SegmentsService {
   private readonly locationId: string;
+
   constructor(
     @InjectRepository(Segment)
-    private segmentsRepository: Repository<Segment>,
+    private readonly segmentsRepository: Repository<Segment>,
     @InjectRepository(SegmentMember)
-    private segmentMembersRepository: Repository<SegmentMember>,
+    private readonly segmentMembersRepository: Repository<SegmentMember>,
     @InjectRepository(Contact)
-    private contactsRepository: Repository<Contact>,
+    private readonly contactsRepository: Repository<Contact>,
     private readonly configService: ConfigService
   ) {
     this.locationId = this.configService.get<string>('LOCATION_ID');
+    if (!this.locationId) {
+      throw new Error('LOCATION_ID is not set in the environment variables.');
+    }
   }
 
   async create(createSegmentDto: CreateSegmentDto): Promise<Segment> {
     const segment = this.segmentsRepository.create({
       ...createSegmentDto,
-      type: SegmentType.STATIC, // For now, only static segments
       locationId: this.locationId,
+      type: SegmentType.STATIC,
     });
     return this.segmentsRepository.save(segment);
   }
 
-  async findAll(params: {
-    search?: string;
-    sort?: string;
-  }): Promise<Segment[]> {
-    const { search, sort } = params;
+  async findAll(params: ListParamsDto) {
+    const { page = 1, limit = 10, search, sort, folder } = params;
     const query = this.segmentsRepository
       .createQueryBuilder('segment')
       .where('segment.locationId = :locationId', {
         locationId: this.locationId,
       })
-      .loadRelationCountAndMap(
-        'segment.memberCount',
-        'segment.members',
-        'member'
-      );
+      .andWhere('segment.deletedAt IS NULL');
 
     if (search) {
-      const ftsQuery = search
-        .trim()
-        .split(' ')
-        .filter((term) => term)
-        .map((term) => `${term}:*`)
-        .join(' & ');
+      query.andWhere('segment.name ILIKE :search', { search: `%${search}%` });
+    }
 
-      query.where(`segment.search_vector @@ to_tsquery('english', :ftsQuery)`, {
-        ftsQuery,
-      });
+    if (folder) {
+      query.andWhere('segment.folder = :folder', { folder });
+    } else {
+      query.andWhere('segment.folder IS NULL');
     }
 
     if (sort) {
-      const [field, direction] = sort.split(':');
-      const sortDirection = direction.toUpperCase() as 'ASC' | 'DESC';
-
-      // To sort by memberCount, we refer to the alias
-      if (field === 'memberCount') {
-        query.orderBy('segment.memberCount', sortDirection);
-      } else if (
-        Object.keys(this.segmentsRepository.metadata.propertiesMap).includes(
-          field
-        )
-      ) {
-        query.orderBy(`segment.${field}`, sortDirection);
-      }
+      const [order, direction] = sort.split(':');
+      query.orderBy(
+        `segment.${order}`,
+        direction.toUpperCase() as 'ASC' | 'DESC'
+      );
     } else {
-      query.orderBy('segment.updatedAt', 'DESC');
+      query.orderBy('segment.createdAt', 'DESC');
     }
 
-    return query.getMany();
+    const [data, total] = await query
+      .skip((page - 1) * limit)
+      .take(limit)
+      .getManyAndCount();
+
+    // TODO: This is inefficient. Should be done with a subquery.
+    const segmentIds = data.map((s) => s.id);
+    if (segmentIds.length > 0) {
+      const memberCounts = await this.segmentMembersRepository
+        .createQueryBuilder('member')
+        .select('member.segmentId', 'segmentId')
+        .addSelect('COUNT(member.contactId)', 'count')
+        .where('member.segmentId IN (:...segmentIds)', { segmentIds })
+        .groupBy('member.segmentId')
+        .getRawMany();
+
+      const countsMap = new Map(
+        memberCounts.map((mc) => [mc.segmentId, parseInt(mc.count, 10)])
+      );
+      data.forEach((segment) => {
+        segment.memberCount = countsMap.get(segment.id) || 0;
+      });
+    }
+
+    return { data, total, page, limit };
   }
 
-  async findDeleted(): Promise<Segment[]> {
-    return this.segmentsRepository.find({
-      where: { deletedAt: Not(IsNull()), locationId: this.locationId },
-      withDeleted: true,
-      order: { deletedAt: 'DESC' },
-    });
-  }
-
-  async findOne(id: string): Promise<Segment> {
+  async findOne(id: string) {
     return this.segmentsRepository.findOne({
       where: { id, locationId: this.locationId },
     });
   }
 
-  async addContacts(segmentId: string, contactIds: string[]): Promise<void> {
-    const members = contactIds.map((contactId) => ({
-      segmentId,
-      contactId,
-      locationId: this.locationId,
-    }));
-
-    if (members.length === 0) {
-      return;
-    }
-
-    // This uses a raw `INSERT ... ON CONFLICT DO NOTHING` for performance.
-    // It's the most efficient way to add members in bulk while ignoring duplicates.
-    await this.segmentMembersRepository
-      .createQueryBuilder()
-      .insert()
-      .into(SegmentMember)
-      .values(members)
-      .onConflict(`("contact_id", "segment_id") DO NOTHING`)
-      .execute();
+  async addContactsToSegment(
+    segmentId: string,
+    addContactsDto: AddContactsToSegmentDto
+  ) {
+    const { contactIds } = addContactsDto;
+    const members = contactIds.map((contactId) =>
+      this.segmentMembersRepository.create({
+        segmentId,
+        contactId,
+        locationId: this.locationId,
+      })
+    );
+    await this.segmentMembersRepository.save(members, { chunk: 100 });
+    return { success: true };
   }
 
-  async removeMembers(segmentId: string, contactIds: string[]): Promise<void> {
+  async removeContactsFromSegment(
+    segmentId: string,
+    contactIds: string[]
+  ): Promise<void> {
     if (contactIds.length === 0) {
       return;
     }
@@ -127,6 +132,46 @@ export class SegmentsService {
       segment: { id: segmentId, locationId: this.locationId },
       contact: { id: In(contactIds) },
     });
+  }
+
+  async findFolders(): Promise<string[]> {
+    const folders = await this.segmentsRepository
+      .createQueryBuilder('segment')
+      .select('DISTINCT segment.folder', 'folder')
+      .where('segment.locationId = :locationId', {
+        locationId: this.locationId,
+      })
+      .andWhere('segment.folder IS NOT NULL')
+      .getRawMany();
+    return folders.map((f) => f.folder);
+  }
+
+  async findDeleted(params: ListParamsDto) {
+    const { page = 1, limit = 10 } = params;
+    const [data, total] = await this.segmentsRepository.findAndCount({
+      where: {
+        deletedAt: Not(IsNull()),
+        locationId: this.locationId,
+      },
+      withDeleted: true,
+      skip: (page - 1) * limit,
+      take: limit,
+      order: {
+        deletedAt: 'DESC',
+      },
+    });
+    return { data, total, page, limit };
+  }
+
+  async softDelete(id: string): Promise<void> {
+    await this.segmentsRepository.softDelete({
+      id,
+      locationId: this.locationId,
+    });
+  }
+
+  async restore(id: string): Promise<void> {
+    await this.segmentsRepository.restore({ id, locationId: this.locationId });
   }
 
   async findSegmentContacts(segmentId: string, params: ListParamsDto) {
@@ -197,16 +242,5 @@ export class SegmentsService {
       .getManyAndCount();
 
     return { data, total, page, limit };
-  }
-
-  async softDelete(id: string): Promise<void> {
-    await this.segmentsRepository.softDelete({
-      id,
-      locationId: this.locationId,
-    });
-  }
-
-  async restore(id: string): Promise<void> {
-    await this.segmentsRepository.restore({ id, locationId: this.locationId });
   }
 }

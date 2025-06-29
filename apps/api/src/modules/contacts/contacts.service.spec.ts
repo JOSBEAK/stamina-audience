@@ -38,6 +38,7 @@ describe('ContactsService', () => {
   describe('create', () => {
     it('should successfully create and save a contact', async () => {
       const createContactDto: CreateContactDto = {
+        locationId: 'test-location-id',
         name: 'John Doe',
         email: 'john.doe@example.com',
         role: 'Tester',

@@ -27,13 +27,18 @@ export class SegmentsController {
   }
 
   @Get()
-  findAll(@Query('search') search?: string, @Query('sort') sort?: string) {
-    return this.segmentsService.findAll({ search, sort });
+  findAll(@Query() params: ListParamsDto) {
+    return this.segmentsService.findAll(params);
   }
 
   @Get('deleted')
-  findDeleted() {
-    return this.segmentsService.findDeleted();
+  findDeleted(@Query() params: ListParamsDto) {
+    return this.segmentsService.findDeleted(params);
+  }
+
+  @Get('folders')
+  findFolders() {
+    return this.segmentsService.findFolders();
   }
 
   @Get(':id')
@@ -55,7 +60,7 @@ export class SegmentsController {
     @Param('id', ParseUUIDPipe) id: string,
     @Body() addContactsDto: AddContactsToSegmentDto
   ) {
-    return this.segmentsService.addContacts(id, addContactsDto.contactIds);
+    return this.segmentsService.addContactsToSegment(id, addContactsDto);
   }
 
   @Delete(':id')
@@ -76,6 +81,6 @@ export class SegmentsController {
     @Param('id', ParseUUIDPipe) id: string,
     @Body() body: { contactIds: string[] }
   ) {
-    return this.segmentsService.removeMembers(id, body.contactIds);
+    return this.segmentsService.removeContactsFromSegment(id, body.contactIds);
   }
 }

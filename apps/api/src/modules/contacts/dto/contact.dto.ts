@@ -16,6 +16,7 @@ import { Industry } from '@stamina-project/types';
 // These types are not defined, so we will use a generic 'any' type for now.
 export type RelatedFromType = {
   LEAD: 'lead';
+  value: any;
 };
 
 export class RelatedFrom {
@@ -31,6 +32,14 @@ export type CRMLeadCustomAttribute = {
 };
 
 export class CreateContactDto {
+  @ApiProperty({
+    description: 'The ID of the location this contact belongs to.',
+    example: 'cll1y2g3d0000g9g7h3j4k5l6',
+  })
+  @IsString()
+  @IsOptional()
+  locationId: string;
+
   @ApiProperty({ description: 'First name of the contact', example: 'John' })
   @IsString()
   @IsNotEmpty()

@@ -14,11 +14,13 @@ import {
   useAddContactsBatch,
   useDeleteContacts,
   useUpdateContact,
+  useCreateContact,
 } from '@/hooks/useContacts';
 import {
   useSegmentContacts,
   useAddContactsToSegment,
   useRemoveContactsFromSegment,
+  useCreateSegment,
 } from '@/hooks/useSegments';
 import { AudienceTable } from '@/components/AudienceTable';
 import AddAudienceModal from '@/components/AddAudienceModal';
@@ -28,7 +30,7 @@ import FieldMapping from '@/components/FieldMapping';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useDebounce } from '@/hooks/useDebounce';
-import { searchAttributes } from '@/utils/api';
+import { searchAttributes, getPresignedUrl, processCsv } from '@/utils/api';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -65,6 +67,7 @@ export function ContactsPage() {
   const [view, setView] = useState('list');
   const [csvData, setCsvData] = useState<CsvRow[]>([]);
   const [csvHeaders, setCsvHeaders] = useState<string[]>([]);
+  const [csvFile, setCsvFile] = useState<File | null>(null);
   const [selectedContacts, setSelectedContacts] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -226,6 +229,7 @@ export function ContactsPage() {
   };
 
   const addContactsMutation = useAddContactsBatch();
+  const createContactMutation = useCreateContact();
   const deleteContactsMutation = useDeleteContacts();
   const updateContactMutation = useUpdateContact();
   const addContactsToSegmentMutation = useAddContactsToSegment();
@@ -247,32 +251,64 @@ export function ContactsPage() {
     }
   };
 
-  const handleDataParsed = (data: CsvRow[], headers: string[]) => {
+  const handleDataParsed = (data: CsvRow[], headers: string[], file: File) => {
     setCsvData(data);
     setCsvHeaders(headers);
+    setCsvFile(file);
     setView('field_mapping');
   };
 
   const handleMappingConfirm = async (
-    mappedData: Partial<Contact>[],
+    mapping: Record<string, string>,
     segmentId?: string
   ) => {
-    toast.promise(
-      addContactsMutation.mutateAsync(mappedData).then((newContacts) => {
-        if (segmentId && newContacts) {
-          const contactIds = newContacts.map((c) => c.id);
-          return addContactsToSegmentMutation.mutateAsync({
-            segmentId,
-            contactIds,
-          });
+    if (!csvFile) {
+      toast.error('No CSV file found to upload.');
+      return;
+    }
+
+    const uploadPromise = async () => {
+      try {
+        // 1. Get presigned URL
+        const { presignedUrl, publicUrl } = await getPresignedUrl(
+          csvFile.name,
+          csvFile.type
+        );
+
+        // 2. Upload file to R2
+        await fetch(presignedUrl, {
+          method: 'PUT',
+          body: csvFile,
+          headers: {
+            'Content-Type': csvFile.type,
+          },
+        });
+
+        const fileKey = publicUrl.split('/').pop();
+        if (!fileKey) {
+          throw new Error('Could not determine file key from public URL.');
         }
-      }),
-      {
-        loading: 'Adding contacts...',
-        success: 'Contacts added successfully!',
-        error: 'Failed to add contacts.',
+
+        // 3. Notify backend to process the file
+        await processCsv({
+          fileKey,
+          mapping,
+          segmentId,
+        });
+      } catch (error) {
+        console.error('CSV Upload failed:', error);
+        // Re-throw to make sure the toast promise catches it as an error
+        throw error;
       }
-    );
+    };
+
+    toast.promise(uploadPromise(), {
+      loading: 'Uploading and queueing CSV for processing...',
+      success:
+        'File uploaded successfully! Contacts are being processed in the background.',
+      error: 'An error occurred during the upload process.',
+    });
+
     setView('list');
     setSelectedContacts([]);
   };
@@ -323,14 +359,26 @@ export function ContactsPage() {
         }
       );
     } else {
-      toast.promise(addContactsMutation.mutateAsync([contactData]), {
-        loading: 'Adding contact...',
-        success: () => {
-          handleCloseForm();
-          return 'Contact added successfully!';
-        },
-        error: 'Failed to add contact.',
-      });
+      toast.promise(
+        createContactMutation.mutateAsync(contactData).then((newContact) => {
+          if (segmentId && newContact) {
+            return addContactsToSegmentMutation.mutateAsync({
+              segmentId,
+              contactIds: [newContact.id],
+            });
+          }
+        }),
+        {
+          loading: 'Adding contact...',
+          success: () => {
+            handleCloseForm();
+            return segmentId
+              ? 'Contact added and added to segment!'
+              : 'Contact added successfully!';
+          },
+          error: 'Failed to add contact.',
+        }
+      );
     }
   };
 
@@ -441,6 +489,7 @@ export function ContactsPage() {
           csvData={csvData}
           onConfirm={handleMappingConfirm}
           onClose={() => setView('list')}
+          currentSegmentId={segmentId}
         />
       );
     }

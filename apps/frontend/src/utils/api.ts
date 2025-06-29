@@ -94,10 +94,9 @@ export const getPresignedUrl = async (
   return data;
 };
 
-export const getSegments = async (params: {
-  search?: string;
-  sort?: string;
-}): Promise<Segment[]> => {
+export const getSegments = async (
+  params: { search?: string; sort?: string } = {}
+): Promise<{ data: Segment[]; total: number }> => {
   const { data } = await apiClient.get('/segments', { params });
   return data;
 };
@@ -139,8 +138,10 @@ export const softDeleteSegment = async (segmentId: string): Promise<void> => {
   await apiClient.delete(`/segments/${segmentId}`);
 };
 
-export const getDeletedSegments = async (): Promise<Segment[]> => {
-  const { data } = await apiClient.get('/segments/deleted');
+export const getDeletedSegments = async (
+  params: { page?: number; limit?: number } = {}
+): Promise<{ data: Segment[]; total: number }> => {
+  const { data } = await apiClient.get('/segments/deleted', { params });
   return data;
 };
 
@@ -155,4 +156,20 @@ export const removeContactsFromSegment = async (
   await apiClient.delete(`/segments/${segmentId}/contacts`, {
     data: { contactIds },
   });
+};
+
+export const processCsv = async (data: {
+  fileKey: string;
+  mapping: Record<string, string>;
+  segmentId?: string;
+}) => {
+  const response = await apiClient.post('/contacts/process-csv', data);
+  return response.data;
+};
+
+export const createContact = async (
+  contactData: Partial<Contact>
+): Promise<Contact> => {
+  const { data } = await apiClient.post('/contacts', contactData);
+  return data;
 };

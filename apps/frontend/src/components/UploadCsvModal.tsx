@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils';
 
 interface UploadCsvModalProps {
   onClose: () => void;
-  onDataParsed: (data: any[], headers: string[]) => void;
+  onDataParsed: (data: any[], headers: string[], file: File) => void;
 }
 
 const UploadCsvModal: React.FC<UploadCsvModalProps> = ({
@@ -20,7 +20,7 @@ const UploadCsvModal: React.FC<UploadCsvModalProps> = ({
       header: true,
       skipEmptyLines: true,
       complete: (results) => {
-        onDataParsed(results.data, results.meta.fields || []);
+        onDataParsed(results.data, results.meta.fields || [], file);
       },
     });
   };

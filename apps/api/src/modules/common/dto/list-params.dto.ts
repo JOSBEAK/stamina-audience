@@ -68,4 +68,11 @@ export class ListParamsDto {
   @IsOptional()
   @IsString()
   industry?: string;
+
+  @ApiPropertyOptional({
+    description: 'Filter by folder.',
+  })
+  @IsOptional()
+  @IsString()
+  folder?: string;
 }

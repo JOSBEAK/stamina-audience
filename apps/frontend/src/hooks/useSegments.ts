@@ -17,6 +17,7 @@ export const useSegments = (
   return useQuery({
     queryKey: ['segments', params],
     queryFn: () => getSegments(params),
+    select: (data) => data.data,
   });
 };
 
@@ -88,10 +89,13 @@ export const useRemoveContactsFromSegment = () => {
   });
 };
 
-export const useDeletedSegments = () => {
+export const useDeletedSegments = (
+  params: { page?: number; limit?: number } = {}
+) => {
   return useQuery({
-    queryKey: ['segments', 'deleted'],
-    queryFn: getDeletedSegments,
+    queryKey: ['segments', 'deleted', params],
+    queryFn: () => getDeletedSegments(params),
+    select: (data) => data.data,
   });
 };
 

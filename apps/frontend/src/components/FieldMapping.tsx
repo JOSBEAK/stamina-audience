@@ -13,9 +13,10 @@ import { toast } from 'sonner'
 
 interface FieldMappingProps {
   onClose: () => void
-  onConfirm: (mappedData: Partial<Contact>[], segmentId?: string) => void
+  onConfirm: (mapping: Record<string, string>, segmentId?: string) => void
   csvData: any[]
   csvHeaders: string[]
+  currentSegmentId?: string
 }
 
 const APP_FIELDS = [
@@ -28,11 +29,11 @@ const APP_FIELDS = [
   { key: "avatar", label: "Avatar", required: true },
 ]
 
-export default function FieldMapping({ onClose, onConfirm, csvData, csvHeaders }: FieldMappingProps) {
+export default function FieldMapping({ onClose, onConfirm, csvData, csvHeaders, currentSegmentId }: FieldMappingProps) {
   const [mapping, setMapping] = useState<Record<string, string>>({})
   const [ignoreEmpty, setIgnoreEmpty] = useState(true)
   const [showPreview, setShowPreview] = useState(false)
-  const [selectedSegment, setSelectedSegment] = useState<string>('new_segment')
+  const [selectedSegment, setSelectedSegment] = useState<string>(currentSegmentId || 'new_segment')
   const [newSegmentName, setNewSegmentName] = useState('')
 
   const { data: segments, isLoading: isLoadingSegments } = useSegments()
@@ -63,38 +64,78 @@ export default function FieldMapping({ onClose, onConfirm, csvData, csvHeaders }
     setMapping(initialMapping)
   }, [csvHeaders])
 
-  // Calculate statistics
-  const stats = useMemo(() => {
-    let processedData = csvData.map((row) => {
-      const newRow: Partial<Contact> = {}
-      for (const csvHeader in mapping) {
-        const appField = mapping[csvHeader] as keyof Contact
-        if (row[csvHeader] && String(row[csvHeader]).trim()) {
-          newRow[appField] = String(row[csvHeader]).trim()
-        }
-      }
-      return newRow
-    })
-
-    if (ignoreEmpty) {
-      processedData = processedData.filter(
-        (row) => Object.keys(row).length > 0 && APP_FIELDS.some((field) => row[field.key as keyof Contact]),
-      )
+  const handleConfirmClick = async () => {
+    if (selectedSegment === 'new_segment' && !newSegmentName.trim()) {
+      toast.error('Please enter a name for the new segment.');
+      return;
     }
 
-    const mappedFields = Object.keys(mapping).length
-    const requiredFieldsMapped = APP_FIELDS.filter(
+    let segmentIdToUse: string | undefined = undefined;
+
+    if (selectedSegment === 'new_segment') {
+      try {
+        const newSegment = await createSegmentMutation.mutateAsync({
+          name: newSegmentName.trim(),
+        });
+        segmentIdToUse = newSegment.id;
+        toast.success(`Segment "${newSegment.name}" created.`);
+      } catch (error) {
+        toast.error('Failed to create new segment.');
+        return;
+      }
+    } else {
+      segmentIdToUse = selectedSegment;
+    }
+
+    onConfirm(mapping, segmentIdToUse);
+  };
+
+  // Calculate statistics
+  const stats = useMemo(() => {
+    const requiredFields = APP_FIELDS.filter(f => f.required).map(f => f.key);
+    const mappedAppFields = new Set(Object.values(mapping));
+    const allRequiredFieldsMapped = requiredFields.every(f => mappedAppFields.has(f));
+
+    let validRows = 0;
+    const processedData = csvData.map((row) => {
+      const newRow: Partial<Contact> = {};
+      let hasRequiredValues = true;
+      for (const csvHeader in mapping) {
+        const appField = mapping[csvHeader] as keyof Contact;
+        const value = row[csvHeader] ? String(row[csvHeader]).trim() : '';
+        if (value) {
+          newRow[appField] = value;
+        }
+        if (requiredFields.includes(appField as string) && !value) {
+          hasRequiredValues = false;
+        }
+      }
+
+      if(hasRequiredValues && Object.keys(newRow).length > 0) {
+        if (!ignoreEmpty) {
+          validRows++;
+        } else if (Object.values(newRow).some(v => v !== '')) {
+          validRows++;
+        }
+      }
+      return newRow;
+    });
+
+    const mappedFields = Object.keys(mapping).length;
+    const requiredFieldsMappedCount = APP_FIELDS.filter(
       (field) => field.required && Object.values(mapping).includes(field.key),
-    ).length
-    const totalRequiredFields = APP_FIELDS.filter((field) => field.required).length
+    ).length;
+    const totalRequiredFields = APP_FIELDS.filter((field) => field.required).length;
+
 
     return {
       totalRows: csvData.length,
-      validRows: processedData.length,
+      validRows: validRows,
       mappedFields,
       totalFields: csvHeaders.length,
-      requiredFieldsMapped,
+      requiredFieldsMapped: requiredFieldsMappedCount,
       totalRequiredFields,
+      allRequiredFieldsMapped,
       processedData: processedData.slice(0, 3), // Preview first 3 rows
     }
   }, [csvData, mapping, ignoreEmpty])
@@ -119,48 +160,6 @@ export default function FieldMapping({ onClose, onConfirm, csvData, csvHeaders }
 
   const clearAllMappings = () => {
     setMapping({})
-  }
-
-  const handleConfirm = () => {
-    if (stats.requiredFieldsMapped !== stats.totalRequiredFields && stats.validRows > 0) {
-      toast.error('Please map all required fields to continue.');
-      return;
-    }
-
-    if (selectedSegment === 'new_segment' && !newSegmentName.trim()) {
-      toast.error('Please enter a name for the new segment.')
-      return
-    }
-
-    let processedData = csvData.map((row) => {
-      const newRow: Partial<Contact> = {}
-      for (const csvHeader in mapping) {
-        const appField = mapping[csvHeader] as keyof Contact
-        if (row[csvHeader] && String(row[csvHeader]).trim()) {
-          newRow[appField] = String(row[csvHeader]).trim()
-        }
-      }
-      return newRow
-    })
-
-    if (ignoreEmpty) {
-      processedData = processedData.filter(
-        (row) => Object.keys(row).length > 0 && APP_FIELDS.some((field) => row[field.key as keyof Contact]),
-      )
-    }
-
-    if (selectedSegment === 'new_segment') {
-      toast.promise(createSegmentMutation.mutateAsync({ name: newSegmentName }), {
-        loading: 'Creating new segment...',
-        success: async (newSegment) => {
-          onConfirm(processedData, newSegment.id)
-          return `Segment "${newSegment.name}" created and contacts added.`
-        },
-        error: 'Failed to create segment.',
-      })
-    } else {
-      onConfirm(processedData, selectedSegment)
-    }
   }
 
   const getSampleData = (header: string) => {
@@ -415,11 +414,20 @@ export default function FieldMapping({ onClose, onConfirm, csvData, csvHeaders }
                 )}
               </div>
               <div className="flex gap-3">
-                <Button variant="outline" onClick={onClose}>
+                <Button
+                  variant="outline"
+                  onClick={onClose}
+                  className="w-full md:w-auto"
+                >
                   Cancel
                 </Button>
-                <Button onClick={handleConfirm} disabled={!canProceed}>
-                  Import {stats.validRows} Contacts
+                <Button
+                  onClick={handleConfirmClick}
+                  disabled={!stats.allRequiredFieldsMapped || createSegmentMutation.isPending}
+                  className="w-full md:w-auto"
+                >
+                  {createSegmentMutation.isPending ? 'Creating Segment...' : 'Confirm and Upload'}
+                  <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </div>
             </div>

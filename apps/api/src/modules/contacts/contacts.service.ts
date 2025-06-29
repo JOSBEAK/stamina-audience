@@ -1,11 +1,16 @@
-import { Injectable, NotFoundException, Logger } from '@nestjs/common';
-// import { SqsService } from '@ssut/nestjs-sqs';
-// import { v4 as uuidv4 } from 'uuid';
+import {
+  Injectable,
+  NotFoundException,
+  Logger,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, Brackets } from 'typeorm';
+import { SqsService } from '@ssut/nestjs-sqs';
+import { ConfigService } from '@nestjs/config';
 import { Contact } from '../../entities/contact.entity';
 import { CreateContactDto, UpdateContactDto } from './dto/contact.dto';
-import { ConfigService } from '@nestjs/config';
+import { ListParamsDto } from '../common/dto/list-params.dto';
 
 interface FindAllParams {
   role?: string;
@@ -18,16 +23,28 @@ interface FindAllParams {
   skip?: number;
 }
 
+interface ProcessCsvJob {
+  fileKey: string;
+  mapping: Record<string, string>;
+  segmentId?: string;
+  // perhaps add userId here in the future
+}
+
 @Injectable()
 export class ContactsService {
   private readonly logger = new Logger(ContactsService.name);
   private readonly locationId: string;
+
   constructor(
     @InjectRepository(Contact)
-    private readonly contactRepository: Repository<Contact>, // private readonly sqsService: SqsService
+    private readonly contactRepository: Repository<Contact>,
+    private readonly sqsService: SqsService,
     private readonly configService: ConfigService
   ) {
     this.locationId = this.configService.get<string>('LOCATION_ID');
+    if (!this.locationId) {
+      throw new Error('LOCATION_ID is not set in the environment variables.');
+    }
   }
 
   async queueCsvProcessing() {
@@ -58,32 +75,25 @@ export class ContactsService {
     return this.contactRepository.save(contact);
   }
 
-  createBatch(createContactDtos: CreateContactDto[]): Promise<Contact[]> {
-    const contacts = this.contactRepository.create(
-      createContactDtos.map((c) => ({ ...c, locationId: this.locationId }))
+  async createBatch(createContactDtos: CreateContactDto[]): Promise<Contact[]> {
+    const contacts = createContactDtos.map((dto) =>
+      this.contactRepository.create({ ...dto, locationId: this.locationId })
     );
     return this.contactRepository.save(contacts);
   }
 
-  async findAll(params: FindAllParams): Promise<{
-    data: Contact[];
-    total: number;
-  }> {
+  async findAll(params: ListParamsDto) {
     const {
+      page = 1,
       role,
       company,
       location,
       industry,
       search,
       sort,
-      take = 10,
-      skip = 0,
+      limit = 10,
     } = params;
-    const query = this.contactRepository
-      .createQueryBuilder('contact')
-      .where('contact.locationId = :locationId', {
-        locationId: this.locationId,
-      });
+    const query = this.contactRepository.createQueryBuilder('contact');
 
     if (role) {
       query.andWhere('contact.role = :role', { role });
@@ -125,20 +135,24 @@ export class ContactsService {
     // A real app would get brandId from auth and add:
     // query.andWhere('contact.brandId = :brandId', { brandId });
 
+    this.applyFilters(query, { role, company, location, industry });
+
     if (sort) {
-      const [field, order] = sort.split(':');
-      query.orderBy(`contact.${field}`, order.toUpperCase() as 'ASC' | 'DESC');
+      const [order, direction] = sort.split(':');
+      query.orderBy(
+        `contact.${order}`,
+        direction.toUpperCase() as 'ASC' | 'DESC'
+      );
     } else {
-      query
-        .orderBy('contact.createdAt', 'DESC')
-        .addOrderBy('contact.id', 'DESC');
+      query.orderBy('contact.createdAt', 'DESC');
     }
 
-    query.skip(skip).take(take);
+    const [data, total] = await query
+      .skip((page - 1) * limit)
+      .take(limit)
+      .getManyAndCount();
 
-    const [data, total] = await query.getManyAndCount();
-
-    return { data, total };
+    return { data, total, page, limit };
   }
 
   async findOne(id: string): Promise<Contact> {
@@ -176,10 +190,7 @@ export class ContactsService {
     return companies.map((c) => c.company);
   }
 
-  async searchAttributes(
-    attribute: 'company' | 'location' | 'industry' | 'role',
-    search: string
-  ): Promise<string[]> {
+  async searchAttributes(attribute: string, search: string): Promise<string[]> {
     if (!['company', 'location', 'industry', 'role'].includes(attribute)) {
       throw new Error('Invalid attribute');
     }
@@ -239,5 +250,103 @@ export class ContactsService {
     this.logger.warn('CSV Upload endpoint called. Queueing is disabled.');
     // Placeholder for async job logic
     return { status: 'upload endpoint reached (queue disabled)' };
+  }
+
+  async queueCsvProcessingJob(job: ProcessCsvJob): Promise<void> {
+    const queueName = 'csv-processing';
+    try {
+      await this.sqsService.send(queueName, {
+        id: 'csv-processing-job', // This is message group ID, can be more dynamic
+        body: job,
+        delaySeconds: 0,
+      });
+      this.logger.log(`Successfully queued job for file: ${job.fileKey}`);
+    } catch (error) {
+      this.logger.error(
+        `Failed to queue CSV processing job for file: ${job.fileKey}`,
+        error
+      );
+      throw new InternalServerErrorException(
+        'Failed to queue CSV for processing.'
+      );
+    }
+  }
+
+  async findSegmentContacts(segmentId: string, params: ListParamsDto) {
+    const {
+      page = 1,
+      limit = 10,
+      sort,
+      search,
+      role,
+      company,
+      location,
+      industry,
+    } = params;
+
+    const query = this.contactRepository
+      .createQueryBuilder('contact')
+      .innerJoin('contact.segmentMembers', 'segmentMember')
+      .where('segmentMember.segmentId = :segmentId', { segmentId });
+
+    if (search) {
+      query.andWhere(
+        new Brackets((qb) => {
+          qb.where('contact.name ILIKE :search', { search: `%${search}%` })
+            .orWhere('contact.email ILIKE :search', { search: `%${search}%` })
+            .orWhere('contact.company ILIKE :search', {
+              search: `%${search}%`,
+            });
+        })
+      );
+    }
+
+    this.applyFilters(query, { role, company, location, industry });
+
+    if (sort) {
+      const [order, direction] = sort.split(':');
+      query.orderBy(
+        `contact.${order}`,
+        direction.toUpperCase() as 'ASC' | 'DESC'
+      );
+    } else {
+      query.orderBy('contact.createdAt', 'DESC');
+    }
+
+    const [data, total] = await query
+      .skip((page - 1) * limit)
+      .take(limit)
+      .getManyAndCount();
+
+    return { data, total, page, limit };
+  }
+
+  private applyFilters(
+    query: any,
+    filters: {
+      role?: string;
+      company?: string;
+      location?: string;
+      industry?: string;
+    }
+  ) {
+    if (filters.role) {
+      query.andWhere('contact.role = :role', { role: filters.role });
+    }
+    if (filters.company) {
+      query.andWhere('contact.company = :company', {
+        company: filters.company,
+      });
+    }
+    if (filters.location) {
+      query.andWhere('contact.location = :location', {
+        location: filters.location,
+      });
+    }
+    if (filters.industry) {
+      query.andWhere('contact.industry = :industry', {
+        industry: filters.industry,
+      });
+    }
   }
 }

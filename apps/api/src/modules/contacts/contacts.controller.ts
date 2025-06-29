@@ -10,11 +10,44 @@ import {
   UsePipes,
   ValidationPipe,
   Logger,
+  HttpCode,
+  ParseArrayPipe,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiQuery } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiQuery,
+  ApiBody,
+  ApiProperty,
+} from '@nestjs/swagger';
 import { ContactsService } from './contacts.service';
 import { CreateContactDto, UpdateContactDto } from './dto/contact.dto';
 import { Contact } from '../../entities/contact.entity';
+import { ListParamsDto } from '../common/dto/list-params.dto';
+import { IsString, IsNotEmpty, IsObject, IsOptional } from 'class-validator';
+
+class ProcessCsvDto {
+  @ApiProperty({ description: 'The key of the uploaded CSV file in R2.' })
+  @IsString()
+  @IsNotEmpty()
+  fileKey: string;
+
+  @ApiProperty({
+    description: 'A map of CSV headers to contact fields.',
+    example: { 'Full Name': 'name', 'Email Address': 'email' },
+  })
+  @IsObject()
+  mapping: Record<string, string>;
+
+  @ApiProperty({
+    description: 'The ID of the segment to add contacts to.',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  segmentId?: string;
+}
 
 @ApiTags('Contacts')
 @Controller('contacts')
@@ -41,12 +74,16 @@ export class ContactsController {
   @Post('batch')
   @UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
   @ApiOperation({ summary: 'Create multiple contacts in a batch' })
+  @ApiBody({ type: [CreateContactDto] })
   @ApiResponse({
     status: 201,
     description: 'The contacts have been successfully created.',
   })
   @ApiResponse({ status: 400, description: 'Bad Request.' })
-  createBatch(@Body() createContactDtos: CreateContactDto[]) {
+  createBatch(
+    @Body(new ParseArrayPipe({ items: CreateContactDto }))
+    createContactDtos: CreateContactDto[]
+  ) {
     return this.contactsService.createBatch(createContactDtos);
   }
 
@@ -61,44 +98,28 @@ export class ContactsController {
     return this.contactsService.uploadCsv();
   }
 
+  @Post('process-csv')
+  @HttpCode(202)
+  @ApiOperation({ summary: 'Queue a CSV file for processing' })
+  async processCsv(@Body() processCsvDto: ProcessCsvDto) {
+    await this.contactsService.queueCsvProcessingJob(processCsvDto);
+    return {
+      message: 'CSV file is being processed.',
+    };
+  }
+
   @Get()
-  @ApiOperation({ summary: 'Find all contacts' })
-  @ApiQuery({ name: 'role', required: true, type: String })
-  @ApiQuery({ name: 'company', required: true, type: String })
-  @ApiQuery({ name: 'location', required: true, type: String })
-  @ApiQuery({ name: 'industry', required: true, type: String })
-  @ApiQuery({ name: 'search', required: true, type: String })
-  @ApiQuery({ name: 'sort', required: false, type: String })
-  @ApiQuery({ name: 'page', required: true, type: Number })
-  @ApiQuery({ name: 'limit', required: true, type: Number })
-  @ApiResponse({
-    status: 200,
-    description: 'A list of contacts.',
-    type: [Contact],
-  })
-  findAll(
-    @Query('role') role?: string,
-    @Query('company') company?: string,
-    @Query('location') location?: string,
-    @Query('industry') industry?: string,
-    @Query('search') search?: string,
-    @Query('sort') sort?: string,
-    @Query('page') page?: string,
-    @Query('limit') limit?: string
-  ) {
-    const take = limit ? parseInt(limit, 10) : 10;
-    const pageNumber = page ? parseInt(page, 10) : 1;
-    const skip = (pageNumber - 1) * take;
-    return this.contactsService.findAll({
-      role,
-      company,
-      location,
-      industry,
-      search,
-      sort,
-      take,
-      skip,
-    });
+  @ApiOperation({ summary: 'List all contacts' })
+  @ApiQuery({ name: 'search', required: false })
+  @ApiQuery({ name: 'page', required: false })
+  @ApiQuery({ name: 'limit', required: false })
+  @ApiQuery({ name: 'sort', required: false })
+  @ApiQuery({ name: 'role', required: false })
+  @ApiQuery({ name: 'company', required: false })
+  @ApiQuery({ name: 'location', required: false })
+  @ApiQuery({ name: 'industry', required: false })
+  findAll(@Query() params: ListParamsDto) {
+    return this.contactsService.findAll(params);
   }
 
   @Get('locations')
@@ -184,5 +205,16 @@ export class ContactsController {
   @ApiResponse({ status: 404, description: 'Contact not found.' })
   remove(@Param('id') id: string) {
     return this.contactsService.remove(id);
+  }
+
+  @Get('segments/:segmentId')
+  @ApiOperation({ summary: 'Find contacts in a segment' })
+  @ApiQuery({ name: 'location', required: false })
+  @ApiQuery({ name: 'industry', required: false })
+  findSegmentContacts(
+    @Param('segmentId') segmentId: string,
+    @Query() params: ListParamsDto
+  ) {
+    return this.contactsService.findSegmentContacts(segmentId, params);
   }
 }

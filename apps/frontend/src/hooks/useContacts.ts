@@ -8,6 +8,7 @@ import {
   getUniqueLocations,
   getUniqueCompanies,
   GetContactsParams,
+  createContact,
 } from '../utils/api';
 
 export const useContacts = (
@@ -32,6 +33,16 @@ export const useUniqueCompanies = () => {
   return useQuery({
     queryKey: ['uniqueCompanies'],
     queryFn: getUniqueCompanies,
+  });
+};
+
+export const useCreateContact = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (contactData: Partial<Contact>) => createContact(contactData),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['contacts'] });
+    },
   });
 };
 
