@@ -12,16 +12,16 @@ import { Contact } from '../../entities/contact.entity';
 import { CreateContactDto, UpdateContactDto } from './dto/contact.dto';
 import { ListParamsDto } from '../common/dto/list-params.dto';
 
-interface FindAllParams {
-  role?: string;
-  company?: string;
-  location?: string;
-  industry?: string;
-  search?: string;
-  sort?: string;
-  take?: number;
-  skip?: number;
-}
+// interface FindAllParams {
+//   role?: string;
+//   company?: string;
+//   location?: string;
+//   industry?: string;
+//   search?: string;
+//   sort?: string;
+//   take?: number;
+//   skip?: number;
+// }
 
 interface ProcessCsvJob {
   fileKey: string;
@@ -190,7 +190,12 @@ export class ContactsService {
     return companies.map((c) => c.company);
   }
 
-  async searchAttributes(attribute: string, search: string): Promise<string[]> {
+  async searchAttributes(
+    attribute: string,
+    search: string,
+    limit = 5,
+    page = 1
+  ): Promise<string[]> {
     if (!['company', 'location', 'industry', 'role'].includes(attribute)) {
       throw new Error('Invalid attribute');
     }
@@ -202,7 +207,8 @@ export class ContactsService {
       .andWhere('contact.locationId = :locationId', {
         locationId: this.locationId,
       })
-      .limit(4);
+      .limit(limit)
+      .offset((page - 1) * limit);
 
     const results = await query.getRawMany();
     return results.map((r) => r.attribute);

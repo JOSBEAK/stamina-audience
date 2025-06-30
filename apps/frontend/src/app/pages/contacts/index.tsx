@@ -11,7 +11,6 @@ import { toast } from 'sonner';
 import { Contact, Segment } from '@stamina-project/types';
 import {
   useContacts,
-  useAddContactsBatch,
   useDeleteContacts,
   useUpdateContact,
   useCreateContact,
@@ -20,7 +19,6 @@ import {
   useSegmentContacts,
   useAddContactsToSegment,
   useRemoveContactsFromSegment,
-  useCreateSegment,
 } from '@/hooks/useSegments';
 import { AudienceTable } from '@/components/AudienceTable';
 import AddAudienceModal from '@/components/AddAudienceModal';
@@ -46,19 +44,20 @@ import { SegmentList } from '@/components/SegmentList';
 import { AddToSegmentModal } from '@/components/AddToSegmentModal';
 import { AddParticipantsModal } from '@/components/AddParticipantsModal';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { usePrefetch } from '@/hooks/usePrefetch';
 
 type CsvRow = Record<string, string>;
 
-type UseContactsParams = {
-  search: string;
-  page: number;
-  limit: number;
-  sort: string;
-  role: string;
-  company: string;
-  location: string;
-  industry: string;
-};
+// type UseContactsParams = {
+//   search: string;
+//   page: number;
+//   limit: number;
+//   sort: string;
+//   role: string;
+//   company: string;
+//   location: string;
+//   industry: string;
+// };
 
 export function ContactsPage() {
   const { segmentId } = useParams<{ segmentId: string }>();
@@ -98,6 +97,42 @@ export function ContactsPage() {
   const [newlyCreatedSegment, setNewlyCreatedSegment] = useState<Segment | null>(
     null
   );
+
+  const [rolePage, setRolePage] = useState(1);
+  const [companyPage, setCompanyPage] = useState(1);
+  const [locationPage, setLocationPage] = useState(1);
+  const [industryPage, setIndustryPage] = useState(1);
+
+  const [hasMoreRoles, setHasMoreRoles] = useState(true);
+  const [hasMoreCompanies, setHasMoreCompanies] = useState(true);
+  const [hasMoreLocations, setHasMoreLocations] = useState(true);
+  const [hasMoreIndustries, setHasMoreIndustries] = useState(true);
+
+  const [sortField, setSortField] = useState<keyof Contact | 'name'>('createdAt');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc' | null>(
+    'desc'
+  );
+
+  const handleSort = (field: string) => {
+    if (sortField === field) {
+      setSortDirection(
+        sortDirection === 'desc' ? 'asc' : sortDirection === 'asc' ? null : 'desc'
+      );
+    } else {
+      setSortField(field as keyof Contact);
+      setSortDirection('desc');
+    }
+  };
+
+  useEffect(() => {
+    if (sortField && sortDirection) {
+      setSort(`${sortField}:${sortDirection}`);
+    } else {
+      setSort('createdAt:desc');
+    }
+  }, [sortField, sortDirection]);
+
+  usePrefetch();
 
   const limit = 10;
 
@@ -148,6 +183,25 @@ export function ContactsPage() {
     setCurrentPage(1);
   }, [segmentId]);
 
+  const { data: prefetchedData } = usePrefetch();
+  
+  useEffect(() => {
+    if (prefetchedData) {
+      setRoleOptions(
+        prefetchedData.role.map((r) => ({ label: r, value: r }))
+      );
+      setCompanyOptions(
+        prefetchedData.company.map((c) => ({ label: c, value: c }))
+      );
+      setLocationOptions(
+        prefetchedData.location.map((l) => ({ label: l, value: l }))
+      );
+      setIndustryOptions(
+        prefetchedData.industry.map((i) => ({ label: i, value: i }))
+      );
+    }
+  }, [prefetchedData]);
+
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'k' && (event.metaKey || event.ctrlKey)) {
@@ -164,56 +218,69 @@ export function ContactsPage() {
   }, []);
 
   useEffect(() => {
-    if (debouncedRoleSearch) {
-      setIsRoleLoading(true);
-      searchAttributes('role', debouncedRoleSearch).then((roles) => {
-        setRoleOptions(roles.map((r) => ({ label: r, value: r })));
-        setIsRoleLoading(false);
-      });
-    } else {
-      setRoleOptions([]);
-    }
-  }, [debouncedRoleSearch]);
+    setIsRoleLoading(true);
+    searchAttributes('role', debouncedRoleSearch, 5, rolePage).then((roles) => {
+      const newOptions = roles.map((r) => ({ label: r, value: r }));
+      if (rolePage === 1) {
+        setRoleOptions(newOptions);
+      } else {
+        setRoleOptions((prev) => [...prev, ...newOptions]);
+      }
+      setHasMoreRoles(newOptions.length === 5);
+      setIsRoleLoading(false);
+    });
+  }, [debouncedRoleSearch, rolePage]);
 
   useEffect(() => {
-    if (debouncedCompanySearch) {
-      setIsCompanyLoading(true);
-      searchAttributes('company', debouncedCompanySearch).then((companies) => {
-        setCompanyOptions(companies.map((c) => ({ label: c, value: c })));
+    setIsCompanyLoading(true);
+    searchAttributes('company', debouncedCompanySearch, 5, companyPage).then(
+      (companies) => {
+        const newOptions = companies.map((c) => ({ label: c, value: c }));
+        if (companyPage === 1) {
+          setCompanyOptions(newOptions);
+        } else {
+          setCompanyOptions((prev) => [...prev, ...newOptions]);
+        }
+        setHasMoreCompanies(newOptions.length === 5);
         setIsCompanyLoading(false);
-      });
-    } else {
-      setCompanyOptions([]);
-    }
-  }, [debouncedCompanySearch]);
+      }
+    );
+  }, [debouncedCompanySearch, companyPage]);
 
   useEffect(() => {
-    if (debouncedLocationSearch) {
-      setIsLocationLoading(true);
-      searchAttributes('location', debouncedLocationSearch).then(
-        (locations) => {
-          setLocationOptions(locations.map((l) => ({ label: l, value: l })));
-          setIsLocationLoading(false);
+    setIsLocationLoading(true);
+    searchAttributes('location', debouncedLocationSearch, 5, locationPage).then(
+      (locations) => {
+        const newOptions = locations.map((l) => ({ label: l, value: l }));
+        if (locationPage === 1) {
+          setLocationOptions(newOptions);
+        } else {
+          setLocationOptions((prev) => [...prev, ...newOptions]);
         }
-      );
-    } else {
-      setLocationOptions([]);
-    }
-  }, [debouncedLocationSearch]);
+        setHasMoreLocations(newOptions.length === 5);
+        setIsLocationLoading(false);
+      }
+    );
+  }, [debouncedLocationSearch, locationPage]);
 
   useEffect(() => {
-    if (debouncedIndustrySearch) {
-      setIsIndustryLoading(true);
-      searchAttributes('industry', debouncedIndustrySearch).then(
-        (industries) => {
-          setIndustryOptions(industries.map((i) => ({ label: i, value: i })));
-          setIsIndustryLoading(false);
-        }
-      );
-    } else {
-      setIndustryOptions([]);
-    }
-  }, [debouncedIndustrySearch]);
+    setIsIndustryLoading(true);
+    searchAttributes(
+      'industry',
+      debouncedIndustrySearch,
+      5,
+      industryPage
+    ).then((industries) => {
+      const newOptions = industries.map((i) => ({ label: i, value: i }));
+      if (industryPage === 1) {
+        setIndustryOptions(newOptions);
+      } else {
+        setIndustryOptions((prev) => [...prev, ...newOptions]);
+      }
+      setHasMoreIndustries(newOptions.length === 5);
+      setIsIndustryLoading(false);
+    });
+  }, [debouncedIndustrySearch, industryPage]);
 
   const handleClearFilters = () => {
     setSearchQuery('');
@@ -226,9 +293,12 @@ export function ContactsPage() {
     setLocationSearch('');
     setIndustrySearch('');
     setRoleSearch('');
+    setRolePage(1);
+    setCompanyPage(1);
+    setLocationPage(1);
+    setIndustryPage(1);
   };
 
-  const addContactsMutation = useAddContactsBatch();
   const createContactMutation = useCreateContact();
   const deleteContactsMutation = useDeleteContacts();
   const updateContactMutation = useUpdateContact();
@@ -498,8 +568,8 @@ export function ContactsPage() {
 
   if (isSegmentListView) {
     return (
-      <div className="p-8 border border-border rounded-lg">
-        <div className="flex justify-between items-center mb-4 pb-4 border-b">
+      <div className="p-8 rounded-lg border border-border">
+        <div className="flex justify-between items-center pb-4 mb-4 border-b">
           <div className="flex items-center space-x-2">
             <Users className="w-6 h-6 text-gray-500" />
             <h1 className="text-xl font-semibold">Audience Segments</h1>
@@ -527,8 +597,8 @@ export function ContactsPage() {
   }
 
   return (
-    <div className="p-8 border border-border rounded-lg">
-      <div className="flex justify-between items-center mb-4 pb-4 border-b">
+    <div className="p-8 rounded-lg border border-border">
+      <div className="flex justify-between items-center pb-4 mb-4 border-b">
         <div className="flex items-center space-x-2">
           <Users className="w-6 h-6 text-gray-500" />
           <h1 className="text-xl font-semibold">Audience</h1>
@@ -546,7 +616,7 @@ export function ContactsPage() {
               <h1 className="text-2xl font-semibold">
                 {isAllContactsView ? 'All Contacts' : 'Segment'}
               </h1>
-              <span className="text-sm text-muted-foreground ml-2 border border-border px-2 py-1 rounded-lg">
+              <span className="px-2 py-1 ml-2 text-sm rounded-lg border text-muted-foreground border-border">
                 {totalContacts} people
               </span>
             </div>
@@ -559,7 +629,7 @@ export function ContactsPage() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
-                <div className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-gray-400 border rounded-md p-1">
+                <div className="absolute right-2 top-1/2 p-1 text-xs text-gray-400 rounded-md border -translate-y-1/2">
                   ⌘K
                 </div>
               </div>
@@ -584,34 +654,54 @@ export function ContactsPage() {
               onSortChange={setSort}
               role={role}
               onRoleChange={setRole}
-              onRoleSearchChange={setRoleSearch}
+              onRoleSearchChange={(search) => {
+                setRoleSearch(search);
+                setRolePage(1);
+              }}
               roleOptions={roleOptions}
               isRoleLoading={isRoleLoading}
               roleSearch={roleSearch}
+              hasMoreRoles={hasMoreRoles}
+              onLoadMoreRoles={() => setRolePage((p) => p + 1)}
               industry={industry}
               onIndustryChange={setIndustry}
-              onIndustrySearchChange={setIndustrySearch}
+              onIndustrySearchChange={(search) => {
+                setIndustrySearch(search);
+                setIndustryPage(1);
+              }}
               industryOptions={industryOptions}
               isIndustryLoading={isIndustryLoading}
               industrySearch={industrySearch}
+              hasMoreIndustries={hasMoreIndustries}
+              onLoadMoreIndustries={() => setIndustryPage((p) => p + 1)}
               company={company}
               onCompanyChange={setCompany}
-              onCompanySearchChange={setCompanySearch}
+              onCompanySearchChange={(search) => {
+                setCompanySearch(search);
+                setCompanyPage(1);
+              }}
               companyOptions={companyOptions}
               isCompanyLoading={isCompanyLoading}
               companySearch={companySearch}
+              hasMoreCompanies={hasMoreCompanies}
+              onLoadMoreCompanies={() => setCompanyPage((p) => p + 1)}
               location={location}
               onLocationChange={setLocation}
-              onLocationSearchChange={setLocationSearch}
+              onLocationSearchChange={(search) => {
+                setLocationSearch(search);
+                setLocationPage(1);
+              }}
               locationOptions={locationOptions}
               isLocationLoading={isLocationLoading}
               locationSearch={locationSearch}
+              hasMoreLocations={hasMoreLocations}
+              onLoadMoreLocations={() => setLocationPage((p) => p + 1)}
               areFiltersActive={areFiltersActive}
               onClearFilters={handleClearFilters}
             />
           )}
 
-          <div className="border rounded-lg overflow-hidden">
+          <div className="overflow-hidden rounded-lg border">
             <AudienceTable
               contacts={contacts}
               loading={isLoading}
@@ -625,6 +715,9 @@ export function ContactsPage() {
               onAddContact={() => setView('add_selection')}
               isSegmentView={!!segmentId}
               onRemoveFromSegment={() => setIsRemoveFromSegmentDialogOpen(true)}
+              onSort={handleSort}
+              sortField={sortField}
+              sortDirection={sortDirection}
             />
           </div>
 
@@ -634,7 +727,7 @@ export function ContactsPage() {
               onClick={handlePreviousPage}
               disabled={currentPage === 1}
             >
-              <ChevronLeft className="mr-2 h-4 w-4" />
+              <ChevronLeft className="mr-2 w-4 h-4" />
               Previous
             </Button>
             <span className="text-sm text-gray-500">
@@ -646,7 +739,7 @@ export function ContactsPage() {
               disabled={currentPage === totalPages || totalPages === 0}
             >
               Next
-              <ChevronRight className="ml-2 h-4 w-4" />
+              <ChevronRight className="ml-2 w-4 h-4" />
             </Button>
           </div>
         </div>

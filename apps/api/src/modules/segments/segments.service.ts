@@ -61,39 +61,60 @@ export class SegmentsService {
       query.andWhere('segment.folder IS NULL');
     }
 
+    query.addSelect(
+      (subQuery) =>
+        subQuery
+          .select('COUNT(member.id)', 'memberCount')
+          .from(SegmentMember, 'member')
+          .where('member.segmentId = segment.id'),
+      'memberCount'
+    );
+
+    // This assumes a 'Broadcast' entity exists and is linked to segments.
+    // As the entity is not available, this is a placeholder for the actual implementation.
+    // A real implementation would require the Broadcast entity to be defined.
+    query.addSelect('0', 'usedInCount');
+
     if (sort) {
       const [order, direction] = sort.split(':');
-      query.orderBy(
-        `segment.${order}`,
-        direction.toUpperCase() as 'ASC' | 'DESC'
-      );
+      const sortableFields = [
+        'name',
+        'type',
+        'updatedAt',
+        'createdAt',
+        'memberCount',
+        'creator',
+        'folder',
+        'usedInCount',
+      ];
+      if (sortableFields.includes(order)) {
+        query.orderBy(
+          ['memberCount', 'usedInCount'].includes(order)
+            ? `"${order}"`
+            : `segment.${order}`,
+          direction.toUpperCase() as 'ASC' | 'DESC'
+        );
+      } else {
+        query.orderBy('segment.createdAt', 'DESC');
+      }
     } else {
       query.orderBy('segment.createdAt', 'DESC');
     }
 
-    const [data, total] = await query
+    const total = await query.getCount();
+    const { entities, raw } = await query
       .skip((page - 1) * limit)
       .take(limit)
-      .getManyAndCount();
+      .getRawAndEntities();
 
-    // TODO: This is inefficient. Should be done with a subquery.
-    const segmentIds = data.map((s) => s.id);
-    if (segmentIds.length > 0) {
-      const memberCounts = await this.segmentMembersRepository
-        .createQueryBuilder('member')
-        .select('member.segmentId', 'segmentId')
-        .addSelect('COUNT(member.contactId)', 'count')
-        .where('member.segmentId IN (:...segmentIds)', { segmentIds })
-        .groupBy('member.segmentId')
-        .getRawMany();
-
-      const countsMap = new Map(
-        memberCounts.map((mc) => [mc.segmentId, parseInt(mc.count, 10)])
-      );
-      data.forEach((segment) => {
-        segment.memberCount = countsMap.get(segment.id) || 0;
-      });
-    }
+    const data = entities.map((segment) => {
+      const rawSegment = raw.find((r) => r.segment_id === segment.id);
+      return {
+        ...segment,
+        memberCount: rawSegment ? parseInt(rawSegment.memberCount, 10) : 0,
+        usedInCount: rawSegment ? parseInt(rawSegment.usedInCount, 10) : 0,
+      };
+    });
 
     return { data, total, page, limit };
   }

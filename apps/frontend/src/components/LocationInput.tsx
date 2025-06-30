@@ -78,7 +78,7 @@ const LocationInput: React.FC<LocationInputProps> = ({ control, error }) => {
           <GoogleAutocomplete field={field} error={error} />
         )}
       />
-      {error && <p className="text-destructive text-xs mt-1">{error.message}</p>}
+      {error && <p className="mt-1 text-xs text-destructive">{error.message}</p>}
     </div>
   ) : (
     <div>Loading location search...</div>

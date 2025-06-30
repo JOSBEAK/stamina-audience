@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { Contact, CreateSegmentDto, Segment } from '@stamina-project/types';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+const API_URL = import.meta.env.VITE_API_URL;
 
 const apiClient = axios.create({
   baseURL: API_URL,
@@ -73,10 +73,12 @@ export const getUniqueCompanies = async (): Promise<string[]> => {
 
 export const searchAttributes = async (
   attribute: 'company' | 'location' | 'industry' | 'role',
-  search: string
+  search: string,
+  limit?: number,
+  page?: number
 ): Promise<string[]> => {
   const { data } = await apiClient.get('/contacts/search-attributes', {
-    params: { attribute, search },
+    params: { attribute, search, limit, page },
   });
   return data;
 };

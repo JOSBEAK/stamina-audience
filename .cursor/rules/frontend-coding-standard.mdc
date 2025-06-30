@@ -1,0 +1,385 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Frontend Code Standards & Patterns
+
+This document outlines the frontend architecture, patterns, and code standards used in the LeadSend monorepo. Following these guidelines ensures consistent development across frontend applications.
+
+## Architecture Overview
+
+The frontend applications in LeadSend are built using React with a modern technology stack focused on developer experience and performance.
+
+### Technology Stack
+
+- **Framework**: [React](https://reactjs.org/)
+- **Build Tool**: [Vite](https://vitejs.dev/)
+- **State Management**: 
+  - [React Query](https://tanstack.com/query) for server state
+  - Context API for local/global state
+- **Styling**: [TailwindCSS](https://tailwindcss.com/)
+- **UI Components**: 
+  - [Radix UI](https://www.radix-ui.com/) for accessible primitives
+  - Custom components built on top of primitives
+- **Form Management**: [React Hook Form](https://react-hook-form.com/)
+- **Routing**: [React Router](https://reactrouter.com/)
+- **API Client**: [Axios](https://axios-http.com/)
+- **Authentication**: OAuth with JWT
+- **Testing**: Jest and React Testing Library
+
+## Project Structure
+
+Frontend applications follow a consistent structure:
+
+```
+frontend-client/
+├── src/
+│   ├── app/
+│   │   ├── app.tsx
+│   │   ├── pages/
+│   │   │   ├── HomePage.tsx
+│   │   │   └── FeaturePage.tsx
+│   │   └── routes/
+│   │       └── AppRouter.tsx
+│   ├── assets/
+│   │   └── ... (images, icons, etc.)
+│   ├── main.tsx
+│   └── global.css
+├── index.html
+└── ... (configuration files)
+```
+
+## Component Structure
+
+Components should follow a consistent structure:
+
+```typescript
+// Import statements organized by external, then internal
+import { useState, useEffect } from 'react';
+import { useForm } from 'react-hook-form';
+import { useSomeFeature } from '@leadsend/frontend-shared';
+
+// Type definitions
+interface FeatureProps {
+  id: string;
+  name: string;
+  onUpdate: (id: string, data: unknown) => void;
+}
+
+// Component definition
+export function Feature({ id, name, onUpdate }: FeatureProps) {
+  // State hooks first
+  const [isLoading, setIsLoading] = useState(false);
+  
+  // Custom hooks
+  const { data } = useSomeFeature(id);
+  const { register, handleSubmit } = useForm();
+  
+  // Effects
+  useEffect(() => {
+    // Effect logic
+  }, [id]);
+  
+  // Event handlers
+  const handleSave = (formData) => {
+    setIsLoading(true);
+    onUpdate(id, formData)
+      .finally(() => setIsLoading(false));
+  };
+  
+  // Conditional rendering
+  if (!data) return <div>Loading...</div>;
+  
+  // Main render
+  return (
+    <div className="p-4 bg-white rounded shadow">
+      <h2 className="text-lg font-semibold">{name}</h2>
+      <form onSubmit={handleSubmit(handleSave)}>
+        {/* Form fields */}
+        <button
+          type="submit"
+          className="px-4 py-2 bg-blue-500 text-white rounded"
+          disabled={isLoading}
+        >
+          {isLoading ? 'Saving...' : 'Save'}
+        </button>
+      </form>
+    </div>
+  );
+}
+```
+
+## Shared Library Structure
+
+The `@leadsend/frontend-shared` library is organized as follows:
+
+```
+frontend-shared/
+├── src/
+│   ├── api/
+│   │   ├── auth/
+│   │   ├── brand/
+│   │   └── ... (other API modules)
+│   ├── assets/
+│   ├── context/
+│   │   ├── UserContext.tsx
+│   │   └── ... (other context providers)
+│   ├── hooks/
+│   │   ├── auth/
+│   │   ├── brand/
+│   │   └── ... (other hook modules)
+│   └── utils/
+│       └── ... (utility functions)
+```
+
+## Code Standards
+
+### Component Standards
+
+1. **Function Components**: Use function components with hooks
+2. **Props Typing**: Always define TypeScript interfaces for props
+3. **Default Exports**: Avoid default exports, use named exports
+4. **Component Size**: Keep components focused on a single responsibility
+5. **Props Spreading**: Avoid spreading props (`{...props}`) when possible
+6. **Destructuring**: Use object destructuring for props and state
+
+### Hook Standards
+
+1. **Naming**: Prefix custom hooks with `use`
+2. **Single Responsibility**: Each hook should do one thing well
+3. **API Hooks**: Use React Query for data fetching hooks
+4. **State Management**: Use React's useState and useReducer appropriately
+5. **Dependencies**: Always specify the appropriate dependency array in useEffect
+
+### API Call Patterns
+
+1. **Organization**: API calls should be organized by domain in the `api/` directory
+2. **React Query**: Use React Query for managing server state
+3. **Error Handling**: Handle API errors consistently
+4. **Loading States**: Properly handle loading states
+5. **Caching**: Leverage React Query's caching capabilities
+
+```typescript
+// API module
+export const getFeature = async (id: string): Promise<Feature> => {
+  const { data } = await axios.get<Feature>(`/api/features/${id}`);
+  return data;
+};
+
+// Hook using the API
+export const useFeature = (id: string) => {
+  return useQuery({
+    queryKey: ['feature', id],
+    queryFn: () => getFeature(id),
+    enabled: !!id,
+  });
+};
+```
+
+### State Management
+
+1. **Server State**: Use React Query for server state
+2. **Local State**: Use useState or useReducer for component state
+3. **Global State**: Use Context API for shared state
+4. **Complex State**: Consider using reducers for complex state logic
+
+```typescript
+// Context definition
+import { createContext, useContext, useState } from 'react';
+
+interface UserContextType {
+  user: User | null;
+  setUser: (user: User | null) => void;
+}
+
+const UserContext = createContext<UserContextType | null>(null);
+
+// Provider component
+export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ 
+  children 
+}) => {
+  const [user, setUser] = useState<User | null>(null);
+  return (
+    <UserContext.Provider value={{ user, setUser }}>
+      {children}
+    </UserContext.Provider>
+  );
+};
+
+// Hook to use the context
+export const useUser = () => {
+  const context = useContext(UserContext);
+  if (!context) {
+    throw new Error('useUser must be used within a UserProvider');
+  }
+  return context;
+};
+```
+
+### Styling Standards
+
+1. **TailwindCSS**: Use utility classes for styling
+2. **Component Variants**: Use class-variance-authority for component variants
+3. **Consistency**: Follow the established design system
+4. **Responsive Design**: Design for mobile-first, then scale up
+5. **Accessibility**: Ensure components are accessible by default
+
+```typescript
+import { cva } from 'class-variance-authority';
+
+export const buttonVariants = cva(
+  'rounded font-medium transition-colors focus-visible:outline-none',
+  {
+    variants: {
+      variant: {
+        primary: 'bg-blue-500 text-white hover:bg-blue-600',
+        secondary: 'bg-gray-200 text-gray-800 hover:bg-gray-300',
+        danger: 'bg-red-500 text-white hover:bg-red-600',
+      },
+      size: {
+        sm: 'px-3 py-1 text-sm',
+        md: 'px-4 py-2',
+        lg: 'px-6 py-3 text-lg',
+      },
+    },
+    defaultVariants: {
+      variant: 'primary',
+      size: 'md',
+    },
+  }
+);
+```
+
+### Routing Standards
+
+1. **React Router**: Use React Router for routing
+2. **Route Organization**: Organize routes logically
+3. **Route Guards**: Use route guards for protected routes
+4. **Route Parameters**: Type route parameters properly
+
+```typescript
+import { createBrowserRouter, RouterProvider } from 'react-router-dom';
+import { ProtectedRoute } from './ProtectedRoute';
+import { HomePage, FeaturePage, LoginPage } from '../pages';
+
+const router = createBrowserRouter([
+  {
+    path: '/',
+    element: <HomePage />,
+  },
+  {
+    path: '/login',
+    element: <LoginPage />,
+  },
+  {
+    path: '/features/:id',
+    element: (
+      <ProtectedRoute>
+        <FeaturePage />
+      </ProtectedRoute>
+    ),
+  },
+]);
+
+export function AppRouter() {
+  return <RouterProvider router={router} />;
+}
+```
+
+### Form Management
+
+1. **React Hook Form**: Use React Hook Form for form management
+2. **Validation**: Use Zod or Yup with React Hook Form
+3. **Error Handling**: Display form errors consistently
+4. **Form Submission**: Handle form submission asynchronously
+
+```typescript
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+
+const schema = z.object({
+  name: z.string().min(3, 'Name must be at least 3 characters'),
+  email: z.string().email('Invalid email address'),
+});
+
+type FormData = z.infer<typeof schema>;
+
+export function ContactForm() {
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<FormData>({
+    resolver: zodResolver(schema),
+  });
+
+  const onSubmit = async (data: FormData) => {
+    // Submit form data
+  };
+
+  return (
+    <form onSubmit={handleSubmit(onSubmit)}>
+      <div>
+        <label htmlFor="name">Name</label>
+        <input id="name" {...register('name')} />
+        {errors.name && <p className="text-red-500">{errors.name.message}</p>}
+      </div>
+      <div>
+        <label htmlFor="email">Email</label>
+        <input id="email" {...register('email')} />
+        {errors.email && <p className="text-red-500">{errors.email.message}</p>}
+      </div>
+      <button type="submit">Submit</button>
+    </form>
+  );
+}
+```
+
+### Testing Standards
+
+1. **Component Testing**: Use React Testing Library for component testing
+2. **Hook Testing**: Test custom hooks with renderHook
+3. **Mocking**: Mock API calls and context providers
+4. **Test Coverage**: Aim for good test coverage of critical components
+5. **Test Organization**: Organize tests to match the component structure
+
+```typescript
+import { render, screen, fireEvent } from '@testing-library/react';
+import { Feature } from './Feature';
+
+describe('Feature component', () => {
+  it('renders the feature name', () => {
+    render(<Feature id="123" name="Test Feature" onUpdate={jest.fn()} />);
+    expect(screen.getByText('Test Feature')).toBeInTheDocument();
+  });
+
+  it('calls onUpdate when form is submitted', () => {
+    const onUpdate = jest.fn();
+    render(<Feature id="123" name="Test Feature" onUpdate={onUpdate} />);
+    
+    fireEvent.click(screen.getByText('Save'));
+    
+    expect(onUpdate).toHaveBeenCalledWith('123', expect.any(Object));
+  });
+});
+```
+
+### Performance Considerations
+
+1. **React.memo**: Use React.memo for expensive components
+2. **Code Splitting**: Use React.lazy and Suspense for code splitting
+3. **Virtualization**: Use virtualization for long lists (react-window)
+4. **Memoization**: Use useMemo and useCallback appropriately
+5. **Bundle Size**: Monitor bundle size and optimize when necessary
+
+### Accessibility Standards
+
+1. **Semantic HTML**: Use proper semantic HTML elements
+2. **ARIA Attributes**: Use ARIA attributes when necessary
+3. **Keyboard Navigation**: Ensure keyboard navigation works
+4. **Color Contrast**: Ensure sufficient color contrast
+5. **Screen Reader**: Test with screen readers
+
+By adhering to these standards, we ensure that the frontend code remains maintainable, accessible, and consistent across the entire application.

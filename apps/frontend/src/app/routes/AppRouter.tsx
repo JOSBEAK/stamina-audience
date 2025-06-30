@@ -33,10 +33,6 @@ const router = createBrowserRouter([
           },
         ],
       },
-      {
-        path: 'broadcasts',
-        element: <BroadcastsPage />,
-      },
     ],
   },
 ]);

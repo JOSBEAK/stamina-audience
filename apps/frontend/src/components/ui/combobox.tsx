@@ -29,6 +29,8 @@ interface ComboboxProps {
   searchPlaceholder?: string;
   emptyPlaceholder?: string;
   loading?: boolean;
+  onLoadMore?: () => void;
+  hasMore?: boolean;
 }
 
 export function Combobox({
@@ -40,6 +42,8 @@ export function Combobox({
   searchPlaceholder = 'Search...',
   emptyPlaceholder = 'No options found.',
   loading = false,
+  onLoadMore,
+  hasMore,
 }: ComboboxProps) {
   const [open, setOpen] = React.useState(false);
 
@@ -94,6 +98,14 @@ export function Combobox({
                     </CommandItem>
                   ))}
                 </CommandGroup>
+                {hasMore && (
+                  <div
+                    className="p-2 text-center text-sm text-blue-500 cursor-pointer hover:bg-gray-100"
+                    onClick={onLoadMore}
+                  >
+                    Load More
+                  </div>
+                )}
               </>
             )}
           </CommandList>

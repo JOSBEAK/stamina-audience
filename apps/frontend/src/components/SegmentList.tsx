@@ -8,28 +8,11 @@ import {
 } from '@/hooks/useSegments';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Plus, ArrowUpDown, Info, Trash2, Undo } from 'lucide-react';
+import { Plus, ArrowUpDown, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Segment } from '@stamina-project/types';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { Checkbox } from '@/components/ui/checkbox';
-import { useDebounce } from '@/hooks/useDebounce';
-import { Skeleton } from './ui/skeleton';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
-import { Badge } from './ui/badge';
-import { format, formatDistanceToNow } from 'date-fns';
+  useDebounce } from '@/hooks/useDebounce';
 import { useContacts } from '@/hooks/useContacts';
 import {
   AlertDialog,
@@ -63,6 +46,10 @@ export function SegmentList({
   const [newSegmentName, setNewSegmentName] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [sort, setSort] = useState('updatedAt:desc');
+  const [sortField, setSortField] = useState('updatedAt');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc' | null>(
+    'desc'
+  );
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedSegments, setSelectedSegments] = useState<string[]>([]);
 
@@ -138,19 +125,23 @@ export function SegmentList({
   };
 
   const handleSort = (field: string) => {
-    const [currentField, currentDirection] = sort.split(':');
-    if (currentField === field) {
-      setSort(`${field}:${currentDirection === 'asc' ? 'desc' : 'asc'}`);
+    if (sortField === field) {
+      setSortDirection(
+        sortDirection === 'desc' ? 'asc' : sortDirection === 'asc' ? null : 'desc'
+      );
     } else {
-      setSort(`${field}:asc`);
+      setSortField(field);
+      setSortDirection('desc');
     }
   };
 
-  const renderSortArrow = (field: string) => {
-    const [currentField, currentDirection] = sort.split(':');
-    if (currentField !== field) return null;
-    return <ArrowUpDown className="ml-2 h-4 w-4" />;
-  };
+  React.useEffect(() => {
+    if (sortField && sortDirection) {
+      setSort(`${sortField}:${sortDirection}`);
+    } else {
+      setSort('updatedAt:desc');
+    }
+  }, [sortField, sortDirection]);
 
   const handleSelectionChange = (segmentId: string) => {
     setSelectedSegments((prev) =>
@@ -186,7 +177,7 @@ export function SegmentList({
             </TabsTrigger>
           </TabsList>
           {isCreating ? (
-            <div className="flex items-center gap-2">
+            <div className="flex gap-2 items-center">
               <Input
                 placeholder="New segment name"
                 value={newSegmentName}
@@ -208,7 +199,7 @@ export function SegmentList({
             </div>
           ) : (
             <Button onClick={() => setIsCreating(true)}>
-              <Plus className="mr-2 h-4 w-4" />
+              <Plus className="mr-2 w-4 h-4" />
               Create Segment
             </Button>
           )}
@@ -216,7 +207,7 @@ export function SegmentList({
         <TabsContent value="all">
           <div className="flex justify-between items-center my-4">
             {selectedSegments.length > 0 ? (
-              <div className="flex items-center gap-4">
+              <div className="flex gap-4 items-center">
                 <span className="text-sm font-medium">
                   {selectedSegments.length} selected
                 </span>
@@ -225,7 +216,7 @@ export function SegmentList({
                   size="sm"
                   onClick={() => setIsDeleteDialogOpen(true)}
                 >
-                  <Trash2 className="mr-2 h-4 w-4" />
+                  <Trash2 className="mr-2 w-4 h-4" />
                   Delete
                 </Button>
               </div>
@@ -249,7 +240,8 @@ export function SegmentList({
             onSelectionChange={handleSelectionChange}
             onSelectSegment={onSelectSegment}
             onSort={handleSort}
-            renderSortArrow={renderSortArrow}
+            sortField={sortField}
+            sortDirection={sortDirection}
           />
         </TabsContent>
         <TabsContent value="deleted">

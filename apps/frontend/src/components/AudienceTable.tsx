@@ -1,10 +1,21 @@
 import type React from "react"
 import type { Contact } from "@stamina-project/types"
-import { Trash2, Edit } from "lucide-react"
+import { Trash2, Edit, ArrowUp, ArrowDown } from "lucide-react"
 import { Checkbox } from "./ui/checkbox"
 import { Skeleton } from "./ui/skeleton"
 import { Button } from "./ui/button"
 import { EmptyState } from "./EmptyState"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import { cn } from "@/lib/utils"
+import { ChevronsUpDown } from "lucide-react"
+import { DataTable, ColumnDef } from './ui/data-table'
 
 interface AudienceTableProps {
   contacts: Contact[]
@@ -19,7 +30,66 @@ interface AudienceTableProps {
   onAddContact: () => void
   isSegmentView: boolean
   onRemoveFromSegment: () => void
+  onSort: (field: string) => void
+  sortField: string
+  sortDirection: 'asc' | 'desc' | null
 }
+
+const columns: ColumnDef<Contact>[] = [
+  {
+    id: 'name',
+    header: () => <>NAME</>,
+    headerClassName: 'w-2/5',
+    cell: (contact) => (
+      <div className="flex items-center">
+        <div className="flex-shrink-0 h-10 w-10">
+          <img
+            className="h-10 w-10 rounded-full"
+            src={contact.avatar || '/placeholder.svg'}
+            alt=""
+          />
+        </div>
+        <div className="ml-4">
+          <div className="text-base font-medium text-gray-900 h-6 leading-6">
+            {contact.name}
+          </div>
+          <div className="text-base text-gray-500 h-6 leading-6">
+            {contact.email}
+          </div>
+        </div>
+      </div>
+    ),
+    enableSorting: true,
+  },
+  {
+    id: 'role',
+    header: () => <>ROLE</>,
+    headerClassName: 'w-1/5',
+    cell: (contact) => <>{contact.role}</>,
+    enableSorting: true,
+  },
+  {
+    id: 'company',
+    header: () => <>COMPANY</>,
+    headerClassName: 'w-1/5',
+    cell: (contact) => <>{contact.company}</>,
+    enableSorting: true,
+  },
+  {
+    id: 'industry',
+    header: () => <>INDUSTRY</>,
+    headerClassName: 'w-1/5',
+    cell: (contact) => <>{contact.industry}</>,
+    enableSorting: true,
+  },
+  {
+    id: 'location',
+    header: () => <>LOCATION</>,
+    headerClassName: 'w-1/5',
+    cell: (contact) => <>{contact.location}</>,
+    enableSorting: true,
+  },
+]
 
 export function AudienceTable({
   contacts,
@@ -34,9 +104,22 @@ export function AudienceTable({
   onAddContact,
   isSegmentView,
   onRemoveFromSegment,
+  onSort,
+  sortField,
+  sortDirection,
 }: AudienceTableProps) {
   const isAllSelected = contacts.length > 0 && selectedContacts.length === contacts.length
   const numSelected = selectedContacts.length
+
+  const renderSortArrow = (field: string) => {
+    if (sortField !== field || !sortDirection) {
+      return <ChevronsUpDown className="ml-2 h-4 w-4" />
+    }
+    if (sortDirection === 'asc') {
+      return <ArrowUp className="ml-2 h-4 w-4" />
+    }
+    return <ArrowDown className="ml-2 h-4 w-4" />
+  }
 
   if (!loading && contacts.length === 0) {
     return areFiltersActive ? (
@@ -51,113 +134,58 @@ export function AudienceTable({
         buttonText="Add Contact"
         onButtonClick={onAddContact}
       />
-    );
+    )
   }
 
   return (
-    <div className="overflow-x-auto">
-      <div className="grid grid-cols-audience-table items-center border-b h-16">
-        <div className="px-4 py-3">
-          <Checkbox checked={isAllSelected} onCheckedChange={onSelectAll} aria-label="Select all" />
-        </div>
-        {numSelected > 0 ? (
-          <div className="px-4 py-3 col-span-5">
-            <div className="flex items-center gap-4 w-full justify-between">
-              <span className="text-sm font-medium">{numSelected} selected</span>
-              <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" onClick={onAddToSegment}>
-                  Add to Segment
-                </Button>
-                {numSelected === 1 && (
-                  <Button variant="outline" size="sm" onClick={() => onEditSelected(selectedContacts[0])}>
-                    <Edit className="mr-2 h-4 w-4" />
-                    Edit
-                  </Button>
-                )}
+    <>
+      {numSelected > 0 && (
+        <div className="px-4 py-3 border-b">
+          <div className="flex items-center gap-4 w-full justify-between">
+            <span className="text-sm font-medium">{numSelected} selected</span>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={onAddToSegment}>
+                Add to Segment
+              </Button>
+              {numSelected === 1 && (
                 <Button
-                  variant="destructive"
+                  variant="outline"
                   size="sm"
-                  onClick={isSegmentView ? onRemoveFromSegment : onDeleteSelected}
+                  onClick={() => onEditSelected(selectedContacts[0])}
                 >
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  {isSegmentView ? 'Remove from Segment' : 'Delete'}
+                  <Edit className="mr-2 h-4 w-4" />
+                  Edit
                 </Button>
-              </div>
+              )}
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={
+                  isSegmentView ? onRemoveFromSegment : onDeleteSelected
+                }
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                {isSegmentView ? 'Remove from Segment' : 'Delete'}
+              </Button>
             </div>
           </div>
-        ) : (
-          <>
-            <div className="px-4 py-3 font-medium text-primary">Name</div>
-            <div className="px-4 py-3 font-medium text-primary">Role</div>
-            <div className="px-4 py-3 font-medium text-primary">Company</div>
-            <div className="px-4 py-3 font-medium text-primary">Industry</div>
-            <div className="px-4 py-3 font-medium text-primary">Location</div>
-          </>
-        )}
-      </div>
-      <div className="divide-y">
-        {loading
-          ? Array.from({ length: 10 }).map((_, index) => (
-              <div key={index} className="grid grid-cols-audience-table items-center h-[73px]">
-                <div className="px-4">
-                  <Skeleton className="h-4 w-4 rounded" />
-                </div>
-                <div className="px-4">
-                  <div className="flex items-center">
-                    <div className="flex-shrink-0 h-10 w-10">
-                      <Skeleton className="h-10 w-10 rounded-full" />
-                    </div>
-                    <div className="ml-4">
-                      <div className="h-6 mb-1">
-                        <Skeleton className="h-4 w-[140px]" />
-                      </div>
-                      <div className="h-6">
-                        <Skeleton className="h-4 w-[180px]" />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div className="px-4">
-                  <Skeleton className="h-4 w-[90px]" />
-                </div>
-                <div className="px-4">
-                  <Skeleton className="h-4 w-[110px]" />
-                </div>
-                <div className="px-4">
-                  <Skeleton className="h-4 w-[100px]" />
-                </div>
-                <div className="px-4">
-                  <Skeleton className="h-4 w-[95px]" />
-                </div>
-              </div>
-            ))
-          : contacts.map((contact) => (
-              <div key={contact.id} className="grid grid-cols-audience-table items-center h-[73px]">
-                <div className="px-4">
-                  <Checkbox
-                    checked={selectedContacts.includes(contact.id)}
-                    onCheckedChange={() => onSelectionChange(contact.id)}
-                    aria-label={`Select ${contact.name}`}
-                  />
-                </div>
-                <div className="px-4">
-                  <div className="flex items-center">
-                    <div className="flex-shrink-0 h-10 w-10">
-                      <img className="h-10 w-10 rounded-full" src={contact.avatar || "/placeholder.svg"} alt="" />
-                    </div>
-                    <div className="ml-4">
-                      <div className="text-base font-medium text-gray-900 h-6 leading-6">{contact.name}</div>
-                      <div className="text-base text-gray-500 h-6 leading-6">{contact.email}</div>
-                    </div>
-                  </div>
-                </div>
-                <div className="px-4 text-base leading-6">{contact.role}</div>
-                <div className="px-4 text-base leading-6">{contact.company}</div>
-                <div className="px-4 text-base leading-6">{contact.industry}</div>
-                <div className="px-4 text-base leading-6">{contact.location}</div>
-              </div>
-            ))}
-      </div>
-    </div>
+        </div>
+      )}
+      <DataTable
+        columns={columns}
+        data={contacts}
+        isLoading={loading}
+        onSort={onSort}
+        sortField={sortField}
+        sortDirection={sortDirection}
+        selectedIds={selectedContacts}
+        onSelectionChange={onSelectionChange}
+        onSelectAll={onSelectAll}
+        isAllSelected={
+          contacts.length > 0 && selectedContacts.length === contacts.length
+        }
+        getRowId={(contact) => contact.id}
+      />
+    </>
   )
 }

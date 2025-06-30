@@ -20,6 +20,8 @@ interface ContactFiltersProps {
   roleOptions: { label: string; value: string }[];
   isRoleLoading: boolean;
   roleSearch: string;
+  onLoadMoreRoles: () => void;
+  hasMoreRoles: boolean;
 
   industry: string;
   onIndustryChange: (value: string) => void;
@@ -27,6 +29,8 @@ interface ContactFiltersProps {
   industryOptions: { label: string; value: string }[];
   isIndustryLoading: boolean;
   industrySearch: string;
+  onLoadMoreIndustries: () => void;
+  hasMoreIndustries: boolean;
 
   company: string;
   onCompanyChange: (value: string) => void;
@@ -34,6 +38,8 @@ interface ContactFiltersProps {
   companyOptions: { label: string; value: string }[];
   isCompanyLoading: boolean;
   companySearch: string;
+  onLoadMoreCompanies: () => void;
+  hasMoreCompanies: boolean;
 
   location: string;
   onLocationChange: (value: string) => void;
@@ -41,6 +47,8 @@ interface ContactFiltersProps {
   locationOptions: { label: string; value: string }[];
   isLocationLoading: boolean;
   locationSearch: string;
+  onLoadMoreLocations: () => void;
+  hasMoreLocations: boolean;
 
   areFiltersActive: boolean;
   onClearFilters: () => void;
@@ -55,55 +63,41 @@ export function ContactFilters({
   roleOptions,
   isRoleLoading,
   roleSearch,
+  onLoadMoreRoles,
+  hasMoreRoles,
   industry,
   onIndustryChange,
   onIndustrySearchChange,
   industryOptions,
   isIndustryLoading,
   industrySearch,
+  onLoadMoreIndustries,
+  hasMoreIndustries,
   company,
   onCompanyChange,
   onCompanySearchChange,
   companyOptions,
   isCompanyLoading,
   companySearch,
+  onLoadMoreCompanies,
+  hasMoreCompanies,
   location,
   onLocationChange,
   onLocationSearchChange,
   locationOptions,
   isLocationLoading,
   locationSearch,
+  onLoadMoreLocations,
+  hasMoreLocations,
   areFiltersActive,
   onClearFilters,
 }: ContactFiltersProps) {
   return (
-    <div className="flex items-end justify-between mb-4 p-4 bg-gray-50 rounded-lg w-full">
-      <div className="flex items-end justify-start space-x-8">
-        <div className="flex flex-col space-y-2">
-          <label className="text-sm font-medium">Sort by</label>
-          <div className="flex items-center space-x-1 relative">
-            <Select
-              value={sort}
-              onValueChange={(value) => onSortChange(value || 'createdAt:desc')}
-            >
-              <SelectTrigger className="w-32">
-                <SelectValue placeholder="Sort by" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="createdAt:desc">Newest</SelectItem>
-                <SelectItem value="createdAt:asc">Oldest</SelectItem>
-                <SelectItem value="name:asc">Name (A-Z)</SelectItem>
-                <SelectItem value="name:desc">Name (Z-A)</SelectItem>
-              </SelectContent>
-            </Select>
-            {sort !== 'createdAt:desc' && (
-              <ClearButton onClick={() => onSortChange('createdAt:desc')} />
-            )}
-          </div>
-        </div>
+    <div className="flex justify-between items-end p-4 mb-4 w-full rounded-lg">
+      <div className="flex justify-start items-end space-x-8">
         <div className="flex flex-col space-y-2">
           <label className="text-sm font-medium">Role</label>
-          <div className="flex items-center space-x-1 relative">
+          <div className="flex relative items-center space-x-1">
             <Combobox
               value={role}
               onChange={onRoleChange}
@@ -117,13 +111,15 @@ export function ContactFilters({
                   : 'Roles will show up here'
               }
               loading={isRoleLoading}
+              onLoadMore={onLoadMoreRoles}
+              hasMore={hasMoreRoles}
             />
             {role && <ClearButton onClick={() => onRoleChange('')} />}
           </div>
         </div>
         <div className="flex flex-col space-y-2">
           <label className="text-sm font-medium">Industry</label>
-          <div className="flex items-center space-x-1 relative">
+          <div className="flex relative items-center space-x-1">
             <Combobox
               value={industry}
               onChange={onIndustryChange}
@@ -137,13 +133,15 @@ export function ContactFilters({
                   : 'Industries will show up here'
               }
               loading={isIndustryLoading}
+              onLoadMore={onLoadMoreIndustries}
+              hasMore={hasMoreIndustries}
             />
             {industry && <ClearButton onClick={() => onIndustryChange('')} />}
           </div>
         </div>
         <div className="flex flex-col space-y-2">
           <label className="text-sm font-medium">Company</label>
-          <div className="flex items-center space-x-1 relative">
+          <div className="flex relative items-center space-x-1">
             <Combobox
               value={company}
               onChange={onCompanyChange}
@@ -157,13 +155,15 @@ export function ContactFilters({
                   : 'Companies will show up here'
               }
               loading={isCompanyLoading}
+              onLoadMore={onLoadMoreCompanies}
+              hasMore={hasMoreCompanies}
             />
             {company && <ClearButton onClick={() => onCompanyChange('')} />}
           </div>
         </div>
         <div className="flex flex-col space-y-2">
           <label className="text-sm font-medium">Location</label>
-          <div className="flex items-center space-x-1 relative">
+          <div className="flex relative items-center space-x-1">
             <Combobox
               value={location}
               onChange={onLocationChange}
@@ -177,6 +177,8 @@ export function ContactFilters({
                   : 'Locations will show up here'
               }
               loading={isLocationLoading}
+              onLoadMore={onLoadMoreLocations}
+              hasMore={hasMoreLocations}
             />
             {location && <ClearButton onClick={() => onLocationChange('')} />}
           </div>
@@ -187,7 +189,7 @@ export function ContactFilters({
           <Button
             variant="destructive"
             onClick={onClearFilters}
-            className="text-sm text-white w-24"
+            className="w-24 text-sm text-white"
           >
             Clear All
           </Button>

@@ -152,6 +152,8 @@ export class ContactsController {
     enum: ['company', 'location', 'industry', 'role'],
   })
   @ApiQuery({ name: 'search', required: true, type: String })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiResponse({
     status: 200,
     description: 'A list of matching attribute values.',
@@ -159,9 +161,16 @@ export class ContactsController {
   })
   searchAttributes(
     @Query('attribute') attribute: 'company' | 'location' | 'industry' | 'role',
-    @Query('search') search: string
+    @Query('search') search: string,
+    @Query('limit') limit?: number,
+    @Query('page') page?: number
   ) {
-    return this.contactsService.searchAttributes(attribute, search);
+    return this.contactsService.searchAttributes(
+      attribute,
+      search,
+      limit,
+      page
+    );
   }
 
   @Get(':id')
