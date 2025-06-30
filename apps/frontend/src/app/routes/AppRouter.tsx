@@ -28,7 +28,7 @@ const router = createBrowserRouter([
             element: <ContactsPage />,
           },
           {
-            path: 'segments/:segmentId',
+            path: 'audience-lists/:audienceListId',
             element: <ContactsPage />,
           },
         ],

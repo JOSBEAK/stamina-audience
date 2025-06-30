@@ -1,5 +1,5 @@
 import React from 'react';
-import { Segment } from '@stamina-project/types';
+import { AudienceList } from '@stamina-project/types';
 import {
   Table,
   TableBody,
@@ -12,13 +12,13 @@ import { Button } from './ui/button';
 import { formatDistanceToNow } from 'date-fns';
 import { Undo } from 'lucide-react';
 
-interface DeletedSegmentsTableProps {
-  deletedSegments: Segment[] | undefined;
+interface DeletedAudienceListsTableProps {
+  deletedAudienceLists: AudienceList[] | undefined;
   onRestore: (id: string) => void;
 }
 
-export const DeletedSegmentsTable: React.FC<DeletedSegmentsTableProps> = ({
-  deletedSegments,
+export const DeletedAudienceListsTable: React.FC<DeletedAudienceListsTableProps> = ({
+  deletedAudienceLists,
   onRestore,
 }) => {
   return (
@@ -32,11 +32,11 @@ export const DeletedSegmentsTable: React.FC<DeletedSegmentsTableProps> = ({
           </TableRow>
         </TableHeader>
         <TableBody>
-          {deletedSegments?.map((segment) => (
-            <TableRow key={segment.id}>
-              <TableCell>{segment.name}</TableCell>
+          {deletedAudienceLists?.map((audienceList) => (
+            <TableRow key={audienceList.id}>
+              <TableCell>{audienceList.name}</TableCell>
               <TableCell>
-                {formatDistanceToNow(new Date(segment.deletedAt ?? ''), {
+                {formatDistanceToNow(new Date(audienceList.deletedAt ?? ''), {
                   addSuffix: true,
                 })}
               </TableCell>
@@ -44,7 +44,7 @@ export const DeletedSegmentsTable: React.FC<DeletedSegmentsTableProps> = ({
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => onRestore(segment.id)}
+                  onClick={() => onRestore(audienceList.id)}
                 >
                   <Undo className="mr-2 w-4 h-4" />
                   Restore

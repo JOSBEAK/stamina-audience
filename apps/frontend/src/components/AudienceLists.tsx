@@ -1,16 +1,16 @@
 import React, { useState } from 'react';
 import {
-  useSegments,
-  useCreateSegment,
-  useSoftDeleteSegment,
-  useDeletedSegments,
-  useRestoreSegment,
-} from '@/hooks/useSegments';
+  useAudienceLists,
+  useCreateAudienceList,
+  useSoftDeleteAudienceList,
+  useDeletedAudienceLists,
+  useRestoreAudienceList,
+} from '@/hooks/useAudienceLists';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Plus, ArrowUpDown, Trash2 } from 'lucide-react';
+import { Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { Segment } from '@stamina-project/types';
+import { AudienceList } from '@stamina-project/types';
 import {
   useDebounce } from '@/hooks/useDebounce';
 import { useContacts } from '@/hooks/useContacts';
@@ -30,20 +30,20 @@ import {
   TabsList,
   TabsTrigger,
 } from '@/components/ui/tabs';
-import { SegmentsTable } from './SegmentsTable';
-import { DeletedSegmentsTable } from './DeletedSegmentsTable';
+import { AudienceListsTable } from './AudienceListsTable';
+import { DeletedAudienceListsTable } from './DeletedAudienceListsTable';
 
-interface SegmentListProps {
-  onSelectSegment: (segmentId: string | null) => void;
-  onSegmentCreated: (segment: Segment) => void;
+interface AudienceListsProps {
+  onSelectAudienceList: (audienceListId: string | null) => void;
+  onAudienceListCreated: (audienceList: AudienceList) => void;
 }
 
-export function SegmentList({
-  onSelectSegment,
-  onSegmentCreated,
-}: SegmentListProps) {
+export function AudienceLists({
+  onSelectAudienceList,
+  onAudienceListCreated,
+}: AudienceListsProps) {
   const [isCreating, setIsCreating] = useState(false);
-  const [newSegmentName, setNewSegmentName] = useState('');
+  const [newAudienceListName, setNewAudienceListName] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [sort, setSort] = useState('updatedAt:desc');
   const [sortField, setSortField] = useState('updatedAt');
@@ -51,19 +51,19 @@ export function SegmentList({
     'desc'
   );
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [selectedSegments, setSelectedSegments] = useState<string[]>([]);
+  const [selectedAudienceLists, setSelectedAudienceLists] = useState<string[]>([]);
 
   const debouncedSearch = useDebounce(searchQuery, 300);
 
-  const { data: segments, isLoading, refetch: refetchSegments } = useSegments({
+  const { data: audienceLists, isLoading, refetch: refetchAudienceLists } = useAudienceLists({
     search: debouncedSearch,
     sort,
   });
 
-  const { data: deletedSegments, refetch: refetchDeleted } =
-    useDeletedSegments();
-  const softDeleteMutation = useSoftDeleteSegment();
-  const restoreMutation = useRestoreSegment();
+  const { data: deletedAudienceLists, refetch: refetchDeleted } =
+    useDeletedAudienceLists();
+  const softDeleteMutation = useSoftDeleteAudienceList();
+  const restoreMutation = useRestoreAudienceList();
 
   const { data: allContactsData } = useContacts(
     { limit: 1 },
@@ -71,56 +71,56 @@ export function SegmentList({
   );
   const allContactsCount = allContactsData?.total ?? 0;
 
-  const createSegmentMutation = useCreateSegment();
+  const createAudienceListMutation = useCreateAudienceList();
 
-  const handleCreateSegment = () => {
-    if (!newSegmentName.trim()) {
-      toast.error('Segment name cannot be empty.');
+  const handleCreateAudienceList = () => {
+    if (!newAudienceListName.trim()) {
+      toast.error('List name cannot be empty.');
       return;
     }
 
-    toast.promise(createSegmentMutation.mutateAsync({ name: newSegmentName }), {
-      loading: 'Creating segment...',
-      success: (newSegment) => {
-        setNewSegmentName('');
+    toast.promise(createAudienceListMutation.mutateAsync({ name: newAudienceListName }), {
+      loading: 'Creating list...',
+      success: (newAudienceList) => {
+        setNewAudienceListName('');
         setIsCreating(false);
-        onSegmentCreated(newSegment);
-        refetchSegments();
-        return 'Segment created successfully! Now add some participants.';
+        onAudienceListCreated(newAudienceList);
+        refetchAudienceLists();
+        return 'List created successfully! Now add some participants.';
       },
-      error: 'Failed to create segment.',
+      error: 'Failed to create list.',
     });
   };
 
   const handleDeleteConfirm = () => {
-    if (selectedSegments.length === 0) return;
+    if (selectedAudienceLists.length === 0) return;
 
     const promise = Promise.all(
-      selectedSegments.map((id) => softDeleteMutation.mutateAsync(id))
+      selectedAudienceLists.map((id) => softDeleteMutation.mutateAsync(id))
     );
 
     toast.promise(promise, {
-      loading: `Deleting ${selectedSegments.length} segment(s)...`,
+      loading: `Deleting ${selectedAudienceLists.length} list(s)...`,
       success: () => {
-        setSelectedSegments([]);
-        refetchSegments();
+        setSelectedAudienceLists([]);
+        refetchAudienceLists();
         refetchDeleted();
         setIsDeleteDialogOpen(false);
-        return 'Segment(s) moved to recently deleted.';
+        return 'List(s) moved to recently deleted.';
       },
-      error: 'Failed to delete segment(s).',
+      error: 'Failed to delete list(s).',
     });
   };
 
   const handleRestore = (id: string) => {
     toast.promise(restoreMutation.mutateAsync(id), {
-      loading: 'Restoring segment...',
+      loading: 'Restoring list...',
       success: () => {
-        refetchSegments();
+        refetchAudienceLists();
         refetchDeleted();
-        return 'Segment restored successfully!';
+        return 'List restored successfully!';
       },
-      error: 'Failed to restore segment.',
+      error: 'Failed to restore list.',
     });
   };
 
@@ -143,26 +143,26 @@ export function SegmentList({
     }
   }, [sortField, sortDirection]);
 
-  const handleSelectionChange = (segmentId: string) => {
-    setSelectedSegments((prev) =>
-      prev.includes(segmentId)
-        ? prev.filter((id) => id !== segmentId)
-        : [...prev, segmentId]
+  const handleSelectionChange = (audienceListId: string) => {
+    setSelectedAudienceLists((prev) =>
+      prev.includes(audienceListId)
+        ? prev.filter((id) => id !== audienceListId)
+        : [...prev, audienceListId]
     );
   };
 
   const handleSelectAll = () => {
-    if (selectedSegments.length === segments?.length) {
-      setSelectedSegments([]);
+    if (selectedAudienceLists.length === audienceLists?.length) {
+      setSelectedAudienceLists([]);
     } else {
-      setSelectedSegments(segments?.map((s) => s.id) || []);
+      setSelectedAudienceLists(audienceLists?.map((s) => s.id) || []);
     }
   };
 
   const isAllSelected =
-    segments &&
-    selectedSegments.length === segments.length &&
-    segments.length > 0
+    audienceLists &&
+    selectedAudienceLists.length === audienceLists.length &&
+    audienceLists.length > 0
       ? true
       : false;
 
@@ -171,22 +171,22 @@ export function SegmentList({
       <Tabs defaultValue="all">
         <div className="flex justify-between items-center">
           <TabsList>
-            <TabsTrigger value="all">Segments</TabsTrigger>
+            <TabsTrigger value="all">Lists</TabsTrigger>
             <TabsTrigger value="deleted">
-              Recently Deleted ({deletedSegments?.length || 0})
+              Recently Deleted ({deletedAudienceLists?.length || 0})
             </TabsTrigger>
           </TabsList>
           {isCreating ? (
             <div className="flex gap-2 items-center">
               <Input
-                placeholder="New segment name"
-                value={newSegmentName}
-                onChange={(e) => setNewSegmentName(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleCreateSegment()}
+                placeholder="New list name"
+                value={newAudienceListName}
+                onChange={(e) => setNewAudienceListName(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleCreateAudienceList()}
                 autoFocus
                 className="w-auto"
               />
-              <Button size="sm" onClick={handleCreateSegment}>
+              <Button size="sm" onClick={handleCreateAudienceList}>
                 Create
               </Button>
               <Button
@@ -200,16 +200,16 @@ export function SegmentList({
           ) : (
             <Button onClick={() => setIsCreating(true)}>
               <Plus className="mr-2 w-4 h-4" />
-              Create Segment
+              Create List
             </Button>
           )}
         </div>
         <TabsContent value="all">
           <div className="flex justify-between items-center my-4">
-            {selectedSegments.length > 0 ? (
+            {selectedAudienceLists.length > 0 ? (
               <div className="flex gap-4 items-center">
                 <span className="text-sm font-medium">
-                  {selectedSegments.length} selected
+                  {selectedAudienceLists.length} selected
                 </span>
                 <Button
                   variant="destructive"
@@ -230,42 +230,37 @@ export function SegmentList({
               </div>
             )}
           </div>
-          <SegmentsTable
+          <AudienceListsTable
             isLoading={isLoading}
-            segments={segments}
-            selectedSegments={selectedSegments}
+            audienceLists={audienceLists}
+            selectedAudienceLists={selectedAudienceLists}
             isAllSelected={isAllSelected}
             allContactsCount={allContactsCount}
             onSelectAll={handleSelectAll}
             onSelectionChange={handleSelectionChange}
-            onSelectSegment={onSelectSegment}
+            onSelectAudienceList={onSelectAudienceList}
             onSort={handleSort}
             sortField={sortField}
             sortDirection={sortDirection}
           />
         </TabsContent>
         <TabsContent value="deleted">
-          <DeletedSegmentsTable
-            deletedSegments={deletedSegments}
+          <DeletedAudienceListsTable
+            deletedAudienceLists={deletedAudienceLists}
             onRestore={handleRestore}
           />
         </TabsContent>
       </Tabs>
-
       <AlertDialog
         open={isDeleteDialogOpen}
         onOpenChange={setIsDeleteDialogOpen}
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will delete the{' '}
-              <span className="font-semibold">
-                {selectedSegments.length} segment(s)
-              </span>
-              . They will be moved to recently deleted and will be permanently
-              removed after 90 days.
+              This will move the selected list(s) to the recently deleted folder.
+              You can restore them later.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

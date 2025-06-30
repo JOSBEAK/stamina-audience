@@ -41,12 +41,12 @@ class ProcessCsvDto {
   mapping: Record<string, string>;
 
   @ApiProperty({
-    description: 'The ID of the segment to add contacts to.',
+    description: 'The ID of the audience list to add contacts to.',
     required: false,
   })
   @IsOptional()
   @IsString()
-  segmentId?: string;
+  audienceListId?: string;
 }
 
 @ApiTags('Contacts')
@@ -214,16 +214,5 @@ export class ContactsController {
   @ApiResponse({ status: 404, description: 'Contact not found.' })
   remove(@Param('id') id: string) {
     return this.contactsService.remove(id);
-  }
-
-  @Get('segments/:segmentId')
-  @ApiOperation({ summary: 'Find contacts in a segment' })
-  @ApiQuery({ name: 'location', required: false })
-  @ApiQuery({ name: 'industry', required: false })
-  findSegmentContacts(
-    @Param('segmentId') segmentId: string,
-    @Query() params: ListParamsDto
-  ) {
-    return this.contactsService.findSegmentContacts(segmentId, params);
   }
 }

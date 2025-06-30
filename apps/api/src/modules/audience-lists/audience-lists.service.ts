@@ -1,28 +1,29 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository, Not, IsNull } from 'typeorm';
-import { Segment, SegmentType } from '../../entities/segment.entity';
-import { CreateSegmentDto } from './dto/segment.dto';
-import { SegmentMember } from '../../entities/segment-member.entity';
+import {
+  AudienceList,
+  AudienceListType,
+} from '../../entities/audience-list.entity';
+import {
+  CreateAudienceListDto,
+  AddContactsToAudienceListDto,
+} from './dto/audience-list.dto';
+import { AudienceListMember } from '../../entities/audience-list-member.entity';
 import { Contact } from '../../entities/contact.entity';
 import { ListParamsDto } from '../common/dto/list-params.dto';
 import { ConfigService } from '@nestjs/config';
 import { IsUUID } from 'class-validator';
 
-export class AddContactsToSegmentDto {
-  @IsUUID('all', { each: true })
-  contactIds: string[];
-}
-
 @Injectable()
-export class SegmentsService {
+export class AudienceListsService {
   private readonly locationId: string;
 
   constructor(
-    @InjectRepository(Segment)
-    private readonly segmentsRepository: Repository<Segment>,
-    @InjectRepository(SegmentMember)
-    private readonly segmentMembersRepository: Repository<SegmentMember>,
+    @InjectRepository(AudienceList)
+    private readonly audienceListsRepository: Repository<AudienceList>,
+    @InjectRepository(AudienceListMember)
+    private readonly audienceListMembersRepository: Repository<AudienceListMember>,
     @InjectRepository(Contact)
     private readonly contactsRepository: Repository<Contact>,
     private readonly configService: ConfigService
@@ -33,44 +34,48 @@ export class SegmentsService {
     }
   }
 
-  async create(createSegmentDto: CreateSegmentDto): Promise<Segment> {
-    const segment = this.segmentsRepository.create({
-      ...createSegmentDto,
+  async create(
+    createAudienceListDto: CreateAudienceListDto
+  ): Promise<AudienceList> {
+    const audienceList = this.audienceListsRepository.create({
+      ...createAudienceListDto,
       locationId: this.locationId,
-      type: SegmentType.STATIC,
+      type: AudienceListType.STATIC,
     });
-    return this.segmentsRepository.save(segment);
+    return this.audienceListsRepository.save(audienceList);
   }
 
   async findAll(params: ListParamsDto) {
     const { page = 1, limit = 10, search, sort, folder } = params;
-    const query = this.segmentsRepository
-      .createQueryBuilder('segment')
-      .where('segment.locationId = :locationId', {
+    const query = this.audienceListsRepository
+      .createQueryBuilder('audienceList')
+      .where('audienceList.locationId = :locationId', {
         locationId: this.locationId,
       })
-      .andWhere('segment.deletedAt IS NULL');
+      .andWhere('audienceList.deletedAt IS NULL');
 
     if (search) {
-      query.andWhere('segment.name ILIKE :search', { search: `%${search}%` });
+      query.andWhere('audienceList.name ILIKE :search', {
+        search: `%${search}%`,
+      });
     }
 
     if (folder) {
-      query.andWhere('segment.folder = :folder', { folder });
+      query.andWhere('audienceList.folder = :folder', { folder });
     } else {
-      query.andWhere('segment.folder IS NULL');
+      query.andWhere('audienceList.folder IS NULL');
     }
 
     query.addSelect(
       (subQuery) =>
         subQuery
           .select('COUNT(member.id)', 'memberCount')
-          .from(SegmentMember, 'member')
-          .where('member.segmentId = segment.id'),
+          .from(AudienceListMember, 'member')
+          .where('member.audienceListId = audienceList.id'),
       'memberCount'
     );
 
-    // This assumes a 'Broadcast' entity exists and is linked to segments.
+    // This assumes a 'Broadcast' entity exists and is linked to audience lists.
     // As the entity is not available, this is a placeholder for the actual implementation.
     // A real implementation would require the Broadcast entity to be defined.
     query.addSelect('0', 'usedInCount');
@@ -91,14 +96,14 @@ export class SegmentsService {
         query.orderBy(
           ['memberCount', 'usedInCount'].includes(order)
             ? `"${order}"`
-            : `segment.${order}`,
+            : `audienceList.${order}`,
           direction.toUpperCase() as 'ASC' | 'DESC'
         );
       } else {
-        query.orderBy('segment.createdAt', 'DESC');
+        query.orderBy('audienceList.createdAt', 'DESC');
       }
     } else {
-      query.orderBy('segment.createdAt', 'DESC');
+      query.orderBy('audienceList.createdAt', 'DESC');
     }
 
     const total = await query.getCount();
@@ -107,12 +112,18 @@ export class SegmentsService {
       .take(limit)
       .getRawAndEntities();
 
-    const data = entities.map((segment) => {
-      const rawSegment = raw.find((r) => r.segment_id === segment.id);
+    const data = entities.map((audienceList) => {
+      const rawAudienceList = raw.find(
+        (r) => r.audienceList_id === audienceList.id
+      );
       return {
-        ...segment,
-        memberCount: rawSegment ? parseInt(rawSegment.memberCount, 10) : 0,
-        usedInCount: rawSegment ? parseInt(rawSegment.usedInCount, 10) : 0,
+        ...audienceList,
+        memberCount: rawAudienceList
+          ? parseInt(rawAudienceList.memberCount, 10)
+          : 0,
+        usedInCount: rawAudienceList
+          ? parseInt(rawAudienceList.usedInCount, 10)
+          : 0,
       };
     });
 
@@ -120,56 +131,57 @@ export class SegmentsService {
   }
 
   async findOne(id: string) {
-    return this.segmentsRepository.findOne({
+    return this.audienceListsRepository.findOne({
       where: { id, locationId: this.locationId },
     });
   }
 
-  async addContactsToSegment(
-    segmentId: string,
-    addContactsDto: AddContactsToSegmentDto
+  async addContactsToAudienceList(
+    audienceListId: string,
+    addContactsDto: AddContactsToAudienceListDto
   ) {
     const { contactIds } = addContactsDto;
     const members = contactIds.map((contactId) =>
-      this.segmentMembersRepository.create({
-        segmentId,
+      this.audienceListMembersRepository.create({
+        audienceListId,
         contactId,
         locationId: this.locationId,
       })
     );
-    await this.segmentMembersRepository.save(members, { chunk: 100 });
+    await this.audienceListMembersRepository.save(members, { chunk: 100 });
     return { success: true };
   }
 
-  async removeContactsFromSegment(
-    segmentId: string,
+  async removeContactsFromAudienceList(
+    audienceListId: string,
     contactIds: string[]
   ): Promise<void> {
     if (contactIds.length === 0) {
       return;
     }
 
-    await this.segmentMembersRepository.delete({
-      segment: { id: segmentId, locationId: this.locationId },
-      contact: { id: In(contactIds) },
+    await this.audienceListMembersRepository.delete({
+      audienceListId,
+      locationId: this.locationId,
+      contactId: In(contactIds),
     });
   }
 
   async findFolders(): Promise<string[]> {
-    const folders = await this.segmentsRepository
-      .createQueryBuilder('segment')
-      .select('DISTINCT segment.folder', 'folder')
-      .where('segment.locationId = :locationId', {
+    const folders = await this.audienceListsRepository
+      .createQueryBuilder('audienceList')
+      .select('DISTINCT audienceList.folder', 'folder')
+      .where('audienceList.locationId = :locationId', {
         locationId: this.locationId,
       })
-      .andWhere('segment.folder IS NOT NULL')
+      .andWhere('audienceList.folder IS NOT NULL')
       .getRawMany();
     return folders.map((f) => f.folder);
   }
 
   async findDeleted(params: ListParamsDto) {
     const { page = 1, limit = 10 } = params;
-    const [data, total] = await this.segmentsRepository.findAndCount({
+    const [data, total] = await this.audienceListsRepository.findAndCount({
       where: {
         deletedAt: Not(IsNull()),
         locationId: this.locationId,
@@ -185,17 +197,23 @@ export class SegmentsService {
   }
 
   async softDelete(id: string): Promise<void> {
-    await this.segmentsRepository.softDelete({
+    await this.audienceListsRepository.softDelete({
       id,
       locationId: this.locationId,
     });
   }
 
   async restore(id: string): Promise<void> {
-    await this.segmentsRepository.restore({ id, locationId: this.locationId });
+    await this.audienceListsRepository.restore({
+      id,
+      locationId: this.locationId,
+    });
   }
 
-  async findSegmentContacts(segmentId: string, params: ListParamsDto) {
+  async findAudienceListContacts(
+    audienceListId: string,
+    params: ListParamsDto
+  ) {
     const {
       page = 1,
       limit = 10,
@@ -209,8 +227,10 @@ export class SegmentsService {
 
     const query = this.contactsRepository
       .createQueryBuilder('contact')
-      .innerJoin('contact.segmentMembers', 'segmentMember')
-      .where('segmentMember.segmentId = :segmentId', { segmentId })
+      .innerJoin('contact.audienceListMembers', 'audienceListMember')
+      .where('audienceListMember.audienceListId = :audienceListId', {
+        audienceListId,
+      })
       .andWhere('contact.locationId = :locationId', {
         locationId: this.locationId,
       });

@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import type { Segment } from "@stamina-project/types"
+import type { AudienceList } from "@stamina-project/types"
 import { TableCell } from "@/components/ui/table"
 import { Skeleton } from "./ui/skeleton"
 import { format } from "date-fns"
@@ -15,21 +15,21 @@ import {
 import { cn } from "@/lib/utils"
 import { DataTable, ColumnDef } from "./ui/data-table"
 
-interface SegmentsTableProps {
+interface AudienceListsTableProps {
   isLoading: boolean
-  segments: Segment[] | undefined
-  selectedSegments: string[]
+  audienceLists: AudienceList[] | undefined
+  selectedAudienceLists: string[]
   isAllSelected: boolean
   allContactsCount: number
   onSelectAll: () => void
   onSelectionChange: (id: string) => void
-  onSelectSegment: (id: string | null) => void
+  onSelectAudienceList: (id: string | null) => void
   onSort: (field: string) => void
   sortField: string
   sortDirection: "asc" | "desc" | null
 }
 
-const columns: ColumnDef<Segment>[] = [
+const columns: ColumnDef<AudienceList>[] = [
   {
     id: "name",
     header: () => (
@@ -37,9 +37,9 @@ const columns: ColumnDef<Segment>[] = [
         NAME <Info className="ml-1 w-3 h-3 text-gray-400" />
       </>
     ),
-    cell: (segment) => (
+    cell: (audienceList) => (
       <div className="font-medium text-blue-600 truncate hover:text-blue-800">
-        {segment.name}
+        {audienceList.name}
       </div>
     ),
     enableSorting: true,
@@ -47,8 +47,8 @@ const columns: ColumnDef<Segment>[] = [
   {
     id: "memberCount",
     header: () => <>LIST SIZE</>,
-    cell: (segment) => (
-      <span className="text-gray-900">{segment.memberCount}</span>
+    cell: (audienceList) => (
+      <span className="text-gray-900">{audienceList.memberCount}</span>
     ),
     enableSorting: true,
   },
@@ -59,15 +59,15 @@ const columns: ColumnDef<Segment>[] = [
         TYPE <Info className="ml-1 w-3 h-3 text-gray-400" />
       </>
     ),
-    cell: (segment) => (
+    cell: (audienceList) => (
       <div className="flex justify-center items-center">
         <div
           className={`w-2 h-2 rounded-full mr-2 ${
-            segment.type === "static" ? "bg-gray-400" : "bg-green-500"
+            audienceList.type === "static" ? "bg-gray-400" : "bg-green-500"
           }`}
         ></div>
         <span className="text-sm text-gray-600">
-          {segment.type === "static" ? "Static" : "Active"}
+          {audienceList.type === "static" ? "Static" : "Active"}
         </span>
       </div>
     ),
@@ -89,12 +89,12 @@ const columns: ColumnDef<Segment>[] = [
         LAST UPDATED (GMT+5:30) <Info className="ml-1 w-3 h-3 text-gray-400" />
       </>
     ),
-    cell: (segment) => (
+    cell: (audienceList) => (
       <div className="text-sm">
         <div className="font-medium text-gray-900">
-          {format(new Date(segment.updatedAt), "MMM d, yyyy h:mm a").toUpperCase()}
+          {format(new Date(audienceList.updatedAt), "MMM d, yyyy h:mm a").toUpperCase()}
         </div>
-        <div className="mt-1 text-xs text-gray-500">by {segment.creator || "Unknown"}</div>
+        <div className="mt-1 text-xs text-gray-500">by {audienceList.creator || "Unknown"}</div>
       </div>
     ),
     enableSorting: true,
@@ -106,14 +106,14 @@ const columns: ColumnDef<Segment>[] = [
         CREATOR <Info className="ml-1 w-3 h-3 text-gray-400" />
       </div>
     ),
-    cell: (segment) => (
+    cell: (audienceList) => (
       <div
         className={cn(
           "text-gray-900 truncate",
-          segment.creator ? "text-primary" : "text-muted-foreground"
+          audienceList.creator ? "text-primary" : "text-muted-foreground"
         )}
       >
-        {segment.creator || "-"}
+        {audienceList.creator || "-"}
       </div>
     ),
     enableSorting: true,
@@ -125,8 +125,8 @@ const columns: ColumnDef<Segment>[] = [
         FOLDER <Info className="ml-1 w-3 h-3 text-gray-400" />
       </div>
     ),
-    cell: (segment) => (
-      <span className="text-gray-400">{segment.folder || "-"}</span>
+    cell: (audienceList) => (
+      <span className="text-gray-400">{audienceList.folder || "-"}</span>
     ),
     enableSorting: true,
   },
@@ -141,30 +141,30 @@ const columns: ColumnDef<Segment>[] = [
               <Info className="ml-1 w-3 h-3 text-gray-400" />
             </TooltipTrigger>
             <TooltipContent>
-              <p>Number of broadcasts using this segment.</p>
+              <p>Number of broadcasts using this audience list.</p>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
       </div>
     ),
-    cell: (segment) => (
+    cell: (audienceList) => (
       <span className="font-medium text-primary">
-        {segment.usedInCount || 0}
+        {audienceList.usedInCount || 0}
       </span>
     ),
     enableSorting: true,
   },
 ]
 
-export const SegmentsTable: React.FC<SegmentsTableProps> = ({
+export const AudienceListsTable: React.FC<AudienceListsTableProps> = ({
   isLoading,
-  segments,
-  selectedSegments,
+  audienceLists,
+  selectedAudienceLists,
   isAllSelected,
   allContactsCount,
   onSelectAll,
   onSelectionChange,
-  onSelectSegment,
+  onSelectAudienceList,
   onSort,
   sortField,
   sortDirection,
@@ -178,15 +178,15 @@ export const SegmentsTable: React.FC<SegmentsTableProps> = ({
     updatedAt: new Date().toISOString(),
     creator: "-",
     folder: "-",
-    usedInCount: "-",
+    usedInCount: 0,
     isSystem: true,
   } as const
 
-  const data = [allContactsRow, ...(segments || [])] as (Segment & {
+  const data = [allContactsRow, ...(audienceLists || [])] as (AudienceList & {
     isSystem?: boolean
   })[]
 
-  const customColumns: ColumnDef<Segment & { isSystem?: boolean }>[] = [
+  const customColumns: ColumnDef<AudienceList & { isSystem?: boolean }>[] = [
     {
       id: "name",
       header: () => (
@@ -194,9 +194,9 @@ export const SegmentsTable: React.FC<SegmentsTableProps> = ({
           NAME
         </>
       ),
-      cell: (segment) => (
+      cell: (audienceList) => (
         <div className="font-medium text-blue-600 hover:text-blue-800">
-          {segment.name}
+          {audienceList.name}
         </div>
       ),
       enableSorting: true,
@@ -205,8 +205,8 @@ export const SegmentsTable: React.FC<SegmentsTableProps> = ({
     {
       id: "memberCount",
       header: () => <>LIST SIZE</>,
-      cell: (segment) => (
-        <span className="text-gray-900">{segment.memberCount}</span>
+      cell: (audienceList) => (
+        <span className="text-gray-900">{audienceList.memberCount}</span>
       ),
       enableSorting: true,
       headerClassName: "w-20 text-center",
@@ -215,18 +215,18 @@ export const SegmentsTable: React.FC<SegmentsTableProps> = ({
     {
       id: "type",
       header: () => <>TYPE</>,
-      cell: (segment) =>
-        segment.isSystem ? (
+      cell: (audienceList) =>
+        audienceList.isSystem ? (
           <span className="text-sm text-gray-600">Default</span>
         ) : (
           <div className="flex justify-center items-center">
             <div
               className={`w-2 h-2 rounded-full mr-2 ${
-                segment.type === "static" ? "bg-gray-400" : "bg-green-500"
+                audienceList.type === "static" ? "bg-gray-400" : "bg-green-500"
               }`}
             ></div>
             <span className="text-sm text-gray-600">
-              {segment.type === "static" ? "Static" : "Active"}
+              {audienceList.type === "static" ? "Static" : "Active"}
             </span>
           </div>
         ),
@@ -244,15 +244,17 @@ export const SegmentsTable: React.FC<SegmentsTableProps> = ({
     {
       id: "updatedAt",
       header: () => <>LAST UPDATED (GMT+5:30)</>,
-      cell: (segment) =>
-        segment.isSystem ? (
+      cell: (audienceList) =>
+        audienceList.isSystem ? (
           <span className="text-gray-400">-</span>
         ) : (
           <div className="text-sm">
             <div className="font-medium text-gray-900">
-              {format(new Date(segment.updatedAt), "MMM d, yyyy h:mm a").toUpperCase()}
+              {format(new Date(audienceList.updatedAt), "MMM d, yyyy h:mm a").toUpperCase()}
             </div>
-            <div className="mt-1 text-xs text-gray-500">by {segment.creator || "Unknown"}</div>
+            <div className="mt-1 text-xs text-gray-500">
+              by {audienceList.creator || "Unknown"}
+            </div>
           </div>
         ),
       enableSorting: true,
@@ -261,23 +263,22 @@ export const SegmentsTable: React.FC<SegmentsTableProps> = ({
     {
       id: "creator",
       header: () => <>CREATOR</>,
-      cell: (segment) => (
-        <>{segment.isSystem ? "-" : segment.creator || "-"}</>
-      ),
+      cell: (audienceList) => <>{audienceList.isSystem ? "-" : audienceList.creator || "-"}</>,
+      enableSorting: true,
       headerClassName: "w-32",
     },
     {
       id: "folder",
       header: () => <>FOLDER</>,
-      cell: (segment) => <>{segment.folder || "-"}</>,
+      cell: (audienceList) => <>{audienceList.folder || "-"}</>,
       headerClassName: "w-24",
     },
     {
       id: "usedInCount",
       header: () => <>USED IN (COUNT)</>,
-      cell: (segment) => <>{segment.usedInCount || "0"}</>,
-      headerClassName: "w-32 text-right",
-      cellClassName: "text-right",
+      cell: (audienceList) => <>{audienceList.usedInCount || "0"}</>,
+      headerClassName: "w-24 text-center",
+      cellClassName: "text-center",
     },
   ]
 
@@ -289,12 +290,12 @@ export const SegmentsTable: React.FC<SegmentsTableProps> = ({
       onSort={onSort}
       sortField={sortField}
       sortDirection={sortDirection}
-      selectedIds={selectedSegments}
+      selectedIds={selectedAudienceLists}
       onSelectionChange={onSelectionChange}
       onSelectAll={onSelectAll}
       isAllSelected={isAllSelected}
-      onRowClick={(row) => onSelectSegment(row.isSystem ? null : row.id)}
-      getRowId={(row) => (row.isSystem ? "all-contacts" : row.id)}
+      getRowId={(row) => row.id}
+      onRowClick={(row) => onSelectAudienceList(row.isSystem ? null : row.id)}
     />
   )
 }

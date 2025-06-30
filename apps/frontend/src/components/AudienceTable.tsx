@@ -25,11 +25,11 @@ interface AudienceTableProps {
   onSelectAll: () => void
   onDeleteSelected: () => void
   onEditSelected: (contactId: string) => void
-  onAddToSegment: () => void
+  onAddToAudienceList: () => void
   areFiltersActive: boolean
   onAddContact: () => void
-  isSegmentView: boolean
-  onRemoveFromSegment: () => void
+  isAudienceListView: boolean
+  onRemoveFromAudienceList: () => void
   onSort: (field: string) => void
   sortField: string
   sortDirection: 'asc' | 'desc' | null
@@ -42,18 +42,18 @@ const columns: ColumnDef<Contact>[] = [
     headerClassName: 'w-2/5',
     cell: (contact) => (
       <div className="flex items-center">
-        <div className="flex-shrink-0 h-10 w-10">
+        <div className="flex-shrink-0 w-10 h-10">
           <img
-            className="h-10 w-10 rounded-full"
+            className="w-10 h-10 rounded-full"
             src={contact.avatar || '/placeholder.svg'}
             alt=""
           />
         </div>
         <div className="ml-4">
-          <div className="text-base font-medium text-gray-900 h-6 leading-6">
+          <div className="h-6 text-base font-medium leading-6 text-gray-900">
             {contact.name}
           </div>
-          <div className="text-base text-gray-500 h-6 leading-6">
+          <div className="h-6 text-base leading-6 text-gray-500">
             {contact.email}
           </div>
         </div>
@@ -99,11 +99,11 @@ export function AudienceTable({
   onSelectAll,
   onDeleteSelected,
   onEditSelected,
-  onAddToSegment,
+  onAddToAudienceList,
   areFiltersActive,
   onAddContact,
-  isSegmentView,
-  onRemoveFromSegment,
+  isAudienceListView,
+  onRemoveFromAudienceList,
   onSort,
   sortField,
   sortDirection,
@@ -113,12 +113,12 @@ export function AudienceTable({
 
   const renderSortArrow = (field: string) => {
     if (sortField !== field || !sortDirection) {
-      return <ChevronsUpDown className="ml-2 h-4 w-4" />
+      return <ChevronsUpDown className="ml-2 w-4 h-4" />
     }
     if (sortDirection === 'asc') {
-      return <ArrowUp className="ml-2 h-4 w-4" />
+      return <ArrowUp className="ml-2 w-4 h-4" />
     }
-    return <ArrowDown className="ml-2 h-4 w-4" />
+    return <ArrowDown className="ml-2 w-4 h-4" />
   }
 
   if (!loading && contacts.length === 0) {
@@ -141,11 +141,11 @@ export function AudienceTable({
     <>
       {numSelected > 0 && (
         <div className="px-4 py-3 border-b">
-          <div className="flex items-center gap-4 w-full justify-between">
+          <div className="flex gap-4 justify-between items-center w-full">
             <span className="text-sm font-medium">{numSelected} selected</span>
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={onAddToSegment}>
-                Add to Segment
+            <div className="flex gap-2 items-center">
+              <Button variant="outline" size="sm" onClick={onAddToAudienceList}>
+                Add to List
               </Button>
               {numSelected === 1 && (
                 <Button
@@ -153,7 +153,7 @@ export function AudienceTable({
                   size="sm"
                   onClick={() => onEditSelected(selectedContacts[0])}
                 >
-                  <Edit className="mr-2 h-4 w-4" />
+                  <Edit className="mr-2 w-4 h-4" />
                   Edit
                 </Button>
               )}
@@ -161,11 +161,11 @@ export function AudienceTable({
                 variant="destructive"
                 size="sm"
                 onClick={
-                  isSegmentView ? onRemoveFromSegment : onDeleteSelected
+                  isAudienceListView ? onRemoveFromAudienceList : onDeleteSelected
                 }
               >
-                <Trash2 className="mr-2 h-4 w-4" />
-                {isSegmentView ? 'Remove from Segment' : 'Delete'}
+                <Trash2 className="mr-2 w-4 h-4" />
+                {isAudienceListView ? 'Remove from List' : 'Delete'}
               </Button>
             </div>
           </div>

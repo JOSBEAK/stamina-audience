@@ -7,7 +7,7 @@ import {
   Index,
   OneToMany,
 } from 'typeorm';
-import { SegmentMember } from './segment-member.entity';
+import { AudienceListMember } from './audience-list-member.entity';
 import {
   RelatedFrom,
   CRMLeadCustomAttribute,
@@ -232,6 +232,6 @@ export class Contact {
   // @OneToMany(() => BroadcastRecipient, (recipient) => recipient.contact)
   // broadcastRecipients: BroadcastRecipient[];
 
-  @OneToMany(() => SegmentMember, (member) => member.contact)
-  segmentMembers: SegmentMember[];
+  @OneToMany(() => AudienceListMember, (member) => member.contact)
+  audienceListMembers: AudienceListMember[];
 }

@@ -21,14 +21,14 @@ interface AddParticipantsModalProps {
   isOpen: boolean;
   onClose: () => void;
   onConfirm: (contactIds: string[]) => void;
-  segmentName: string;
+  audienceListName: string;
 }
 
 export function AddParticipantsModal({
   isOpen,
   onClose,
   onConfirm,
-  segmentName,
+  audienceListName,
 }: AddParticipantsModalProps) {
   const [selectedContacts, setSelectedContacts] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -76,9 +76,9 @@ export function AddParticipantsModal({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Add Participants to "{segmentName}"</DialogTitle>
+          <DialogTitle>Add Participants to "{audienceListName}"</DialogTitle>
           <DialogDescription>
-            Search and select contacts to add to this segment.
+            Search and select contacts to add to this audience list.
           </DialogDescription>
         </DialogHeader>
         <div className="py-4 space-y-4">

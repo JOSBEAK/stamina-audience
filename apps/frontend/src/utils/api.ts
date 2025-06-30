@@ -1,5 +1,9 @@
 import axios from 'axios';
-import { Contact, CreateSegmentDto, Segment } from '@stamina-project/types';
+import {
+  Contact,
+  CreateAudienceListDto,
+  AudienceList,
+} from '@stamina-project/types';
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -96,22 +100,22 @@ export const getPresignedUrl = async (
   return data;
 };
 
-export const getSegments = async (
+export const getAudienceLists = async (
   params: { search?: string; sort?: string } = {}
-): Promise<{ data: Segment[]; total: number }> => {
-  const { data } = await apiClient.get('/segments', { params });
+): Promise<{ data: AudienceList[]; total: number }> => {
+  const { data } = await apiClient.get('/audience-lists', { params });
   return data;
 };
 
-export const createSegment = async (
-  segmentData: CreateSegmentDto
-): Promise<Segment> => {
-  const { data } = await apiClient.post('/segments', segmentData);
+export const createAudienceList = async (
+  audienceListData: CreateAudienceListDto
+): Promise<AudienceList> => {
+  const { data } = await apiClient.post('/audience-lists', audienceListData);
   return data;
 };
 
-export const getSegmentContacts = async (
-  segmentId: string,
+export const getAudienceListContacts = async (
+  audienceListId: string,
   params: {
     page: number;
     limit: number;
@@ -123,39 +127,48 @@ export const getSegmentContacts = async (
     industry?: string;
   }
 ): Promise<{ data: Contact[]; total: number }> => {
-  const { data } = await apiClient.get(`/segments/${segmentId}/contacts`, {
-    params,
+  const { data } = await apiClient.get(
+    `/audience-lists/${audienceListId}/contacts`,
+    {
+      params,
+    }
+  );
+  return data;
+};
+
+export const addContactsToAudienceList = async (
+  audienceListId: string,
+  contactIds: string[]
+): Promise<void> => {
+  await apiClient.post(`/audience-lists/${audienceListId}/contacts`, {
+    contactIds,
   });
-  return data;
 };
 
-export const addContactsToSegment = async (
-  segmentId: string,
-  contactIds: string[]
+export const softDeleteAudienceList = async (
+  audienceListId: string
 ): Promise<void> => {
-  await apiClient.post(`/segments/${segmentId}/contacts`, { contactIds });
+  await apiClient.delete(`/audience-lists/${audienceListId}`);
 };
 
-export const softDeleteSegment = async (segmentId: string): Promise<void> => {
-  await apiClient.delete(`/segments/${segmentId}`);
-};
-
-export const getDeletedSegments = async (
+export const getDeletedAudienceLists = async (
   params: { page?: number; limit?: number } = {}
-): Promise<{ data: Segment[]; total: number }> => {
-  const { data } = await apiClient.get('/segments/deleted', { params });
+): Promise<{ data: AudienceList[]; total: number }> => {
+  const { data } = await apiClient.get('/audience-lists/deleted', { params });
   return data;
 };
 
-export const restoreSegment = async (segmentId: string): Promise<void> => {
-  await apiClient.post(`/segments/${segmentId}/restore`);
+export const restoreAudienceList = async (
+  audienceListId: string
+): Promise<void> => {
+  await apiClient.post(`/audience-lists/${audienceListId}/restore`);
 };
 
-export const removeContactsFromSegment = async (
-  segmentId: string,
+export const removeContactsFromAudienceList = async (
+  audienceListId: string,
   contactIds: string[]
 ): Promise<void> => {
-  await apiClient.delete(`/segments/${segmentId}/contacts`, {
+  await apiClient.delete(`/audience-lists/${audienceListId}/contacts`, {
     data: { contactIds },
   });
 };
@@ -163,7 +176,7 @@ export const removeContactsFromSegment = async (
 export const processCsv = async (data: {
   fileKey: string;
   mapping: Record<string, string>;
-  segmentId?: string;
+  audienceListId?: string;
 }) => {
   const response = await apiClient.post('/contacts/process-csv', data);
   return response.data;

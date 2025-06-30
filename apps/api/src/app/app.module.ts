@@ -10,12 +10,12 @@ import { ContactsModule } from '../modules/contacts/contacts.module';
 // import { WebhookModule } from '../modules/webhook/webhook.module';
 import { UploadsModule } from '../modules/uploads/uploads.module';
 // import { QueueModule } from '../modules/queue/queue.module'; // Temporarily disabled
-import { SegmentsModule } from '../modules/segments/segments.module';
+import { AudienceListsModule } from '../modules/audience-lists/audience-lists.module';
 // import { QueueModule } from '../modules/queue/queue.module'; // Temporarily disabled
 
 import { Contact } from '../entities/contact.entity';
-import { Segment } from '../entities/segment.entity';
-import { SegmentMember } from '../entities/segment-member.entity';
+import { AudienceList } from '../entities/audience-list.entity';
+import { AudienceListMember } from '../entities/audience-list-member.entity';
 
 @Module({
   imports: [
@@ -29,7 +29,7 @@ import { SegmentMember } from '../entities/segment-member.entity';
       useFactory: (configService: ConfigService) => ({
         type: 'postgres',
         url: configService.get<string>('TYPEORM_URL'),
-        entities: [Contact, Segment, SegmentMember],
+        entities: [Contact, AudienceList, AudienceListMember],
         migrations: [__dirname + '/../migrations/*{.ts,.js}'],
         synchronize: false, // Note: disable in production
       }),
@@ -54,7 +54,7 @@ import { SegmentMember } from '../entities/segment-member.entity';
     ContactsModule,
     UploadsModule,
     // QueueModule, // Temporarily disabled
-    SegmentsModule,
+    AudienceListsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

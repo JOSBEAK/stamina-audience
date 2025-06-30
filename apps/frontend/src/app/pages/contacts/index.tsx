@@ -8,7 +8,7 @@ import {
   ChevronDown,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { Contact, Segment } from '@stamina-project/types';
+import { Contact, AudienceList } from '@stamina-project/types';
 import {
   useContacts,
   useDeleteContacts,
@@ -16,10 +16,10 @@ import {
   useCreateContact,
 } from '@/hooks/useContacts';
 import {
-  useSegmentContacts,
-  useAddContactsToSegment,
-  useRemoveContactsFromSegment,
-} from '@/hooks/useSegments';
+  useAudienceListContacts,
+  useAddContactsToAudienceList,
+  useRemoveContactsFromAudienceList,
+} from '@/hooks/useAudienceLists';
 import { AudienceTable } from '@/components/AudienceTable';
 import AddAudienceModal from '@/components/AddAudienceModal';
 import { AddManualForm } from '@/components/AddManualForm';
@@ -40,8 +40,8 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { ContactFilters } from '@/components/ContactFilters';
-import { SegmentList } from '@/components/SegmentList';
-import { AddToSegmentModal } from '@/components/AddToSegmentModal';
+import { AudienceLists } from '@/components/AudienceLists';
+import { AddToAudienceListModal } from '@/components/AddToAudienceListModal';
 import { AddParticipantsModal } from '@/components/AddParticipantsModal';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { usePrefetch } from '@/hooks/usePrefetch';
@@ -60,7 +60,7 @@ type CsvRow = Record<string, string>;
 // };
 
 export function ContactsPage() {
-  const { segmentId } = useParams<{ segmentId: string }>();
+  const { audienceListId } = useParams<{ audienceListId: string }>();
   const navigate = useNavigate();
   const routeLocation = useLocation();
   const [view, setView] = useState('list');
@@ -72,7 +72,7 @@ export function ContactsPage() {
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [isRemoveFromSegmentDialogOpen, setIsRemoveFromSegmentDialogOpen] =
+  const [isRemoveFromAudienceListDialogOpen, setIsRemoveFromAudienceListDialogOpen] =
     useState(false);
   const [editingContact, setEditingContact] = useState<Contact | null>(null);
   const [showFilters, setShowFilters] = useState(false);
@@ -93,8 +93,8 @@ export function ContactsPage() {
   const [isLocationLoading, setIsLocationLoading] = useState(false);
   const [isIndustryLoading, setIsIndustryLoading] = useState(false);
   const [isRoleLoading, setIsRoleLoading] = useState(false);
-  const [isAddToSegmentModalOpen, setIsAddToSegmentModalOpen] = useState(false);
-  const [newlyCreatedSegment, setNewlyCreatedSegment] = useState<Segment | null>(
+  const [isAddToAudienceListModalOpen, setIsAddToAudienceListModalOpen] = useState(false);
+  const [newlyCreatedAudienceList, setNewlyCreatedAudienceList] = useState<AudienceList | null>(
     null
   );
 
@@ -151,7 +151,7 @@ export function ContactsPage() {
   const debouncedSearchQuery = useDebounce(searchQuery, 500);
 
   const isAllContactsView = routeLocation.pathname === '/contacts/all';
-  const isSegmentListView = routeLocation.pathname === '/contacts';
+  const isAudienceListView = routeLocation.pathname === '/contacts';
 
   const listParams = {
     search: debouncedSearchQuery,
@@ -164,9 +164,9 @@ export function ContactsPage() {
     industry,
   };
 
-  const { data: segmentContactsData, isLoading: isSegmentContactsLoading } =
-    useSegmentContacts(segmentId, listParams, {
-      enabled: !!segmentId,
+  const { data: audienceListContactsData, isLoading: isAudienceListContactsLoading } =
+    useAudienceListContacts(audienceListId, listParams, {
+      enabled: !!audienceListId,
     });
 
   const { data: allContactsData, isLoading: isAllContactsLoading } =
@@ -174,14 +174,14 @@ export function ContactsPage() {
       enabled: isAllContactsView,
     });
 
-  const data = isAllContactsView ? allContactsData : segmentContactsData;
+  const data = isAllContactsView ? allContactsData : audienceListContactsData;
   const isLoading = isAllContactsView
     ? isAllContactsLoading
-    : isSegmentContactsLoading;
+    : isAudienceListContactsLoading;
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [segmentId]);
+  }, [audienceListId]);
 
   const { data: prefetchedData } = usePrefetch();
   
@@ -302,8 +302,8 @@ export function ContactsPage() {
   const createContactMutation = useCreateContact();
   const deleteContactsMutation = useDeleteContacts();
   const updateContactMutation = useUpdateContact();
-  const addContactsToSegmentMutation = useAddContactsToSegment();
-  const removeContactsFromSegmentMutation = useRemoveContactsFromSegment();
+  const addContactsToAudienceListMutation = useAddContactsToAudienceList();
+  const removeContactsFromAudienceListMutation = useRemoveContactsFromAudienceList();
 
   const contacts = data?.data ?? [];
   const totalContacts = data?.total ?? 0;
@@ -330,7 +330,7 @@ export function ContactsPage() {
 
   const handleMappingConfirm = async (
     mapping: Record<string, string>,
-    segmentId?: string
+    audienceListId?: string
   ) => {
     if (!csvFile) {
       toast.error('No CSV file found to upload.');
@@ -339,19 +339,15 @@ export function ContactsPage() {
 
     const uploadPromise = async () => {
       try {
-        // 1. Get presigned URL
         const { presignedUrl, publicUrl } = await getPresignedUrl(
           csvFile.name,
           csvFile.type
         );
 
-        // 2. Upload file to R2
         await fetch(presignedUrl, {
           method: 'PUT',
           body: csvFile,
-          headers: {
-            'Content-Type': csvFile.type,
-          },
+          headers: { 'Content-Type': csvFile.type },
         });
 
         const fileKey = publicUrl.split('/').pop();
@@ -359,15 +355,13 @@ export function ContactsPage() {
           throw new Error('Could not determine file key from public URL.');
         }
 
-        // 3. Notify backend to process the file
         await processCsv({
           fileKey,
           mapping,
-          segmentId,
+          audienceListId,
         });
       } catch (error) {
         console.error('CSV Upload failed:', error);
-        // Re-throw to make sure the toast promise catches it as an error
         throw error;
       }
     };
@@ -431,9 +425,9 @@ export function ContactsPage() {
     } else {
       toast.promise(
         createContactMutation.mutateAsync(contactData).then((newContact) => {
-          if (segmentId && newContact) {
-            return addContactsToSegmentMutation.mutateAsync({
-              segmentId,
+          if (audienceListId && newContact) {
+            return addContactsToAudienceListMutation.mutateAsync({
+              audienceListId,
               contactIds: [newContact.id],
             });
           }
@@ -442,8 +436,8 @@ export function ContactsPage() {
           loading: 'Adding contact...',
           success: () => {
             handleCloseForm();
-            return segmentId
-              ? 'Contact added and added to segment!'
+            return audienceListId
+              ? 'Contact added and added to list!'
               : 'Contact added successfully!';
           },
           error: 'Failed to add contact.',
@@ -464,60 +458,60 @@ export function ContactsPage() {
     });
   };
 
-  const handleRemoveFromSegment = async () => {
-    if (!segmentId) return;
+  const handleRemoveFromAudienceList = async () => {
+    if (!audienceListId) return;
 
     toast.promise(
-      removeContactsFromSegmentMutation.mutateAsync({
-        segmentId: segmentId,
+      removeContactsFromAudienceListMutation.mutateAsync({
+        audienceListId: audienceListId,
         contactIds: selectedContacts,
       }),
       {
-        loading: 'Removing contacts from segment...',
+        loading: 'Removing contacts from list...',
         success: () => {
           setSelectedContacts([]);
-          setIsRemoveFromSegmentDialogOpen(false);
-          return 'Contacts removed from segment successfully!';
+          setIsRemoveFromAudienceListDialogOpen(false);
+          return 'Contacts removed from list successfully!';
         },
-        error: 'Failed to remove contacts from segment.',
+        error: 'Failed to remove contacts from list.',
       }
     );
   };
 
-  const handleAddToSegmentConfirm = (segmentId: string) => {
+  const handleAddToAudienceListConfirm = (audienceListId: string) => {
     toast.promise(
-      addContactsToSegmentMutation.mutateAsync({
-        segmentId,
+      addContactsToAudienceListMutation.mutateAsync({
+        audienceListId,
         contactIds: selectedContacts,
       }),
       {
-        loading: 'Adding contacts to segment...',
+        loading: 'Adding contacts to list...',
         success: () => {
-          setIsAddToSegmentModalOpen(false);
+          setIsAddToAudienceListModalOpen(false);
           setSelectedContacts([]);
-          return 'Contacts added to segment successfully!';
+          return 'Contacts added to list successfully!';
         },
-        error: 'Failed to add contacts to segment.',
+        error: 'Failed to add contacts to list.',
       }
     );
   };
 
-  const handleSegmentCreated = (segment: Segment) => {
-    setNewlyCreatedSegment(segment);
+  const handleAudienceListCreated = (audienceList: AudienceList) => {
+    setNewlyCreatedAudienceList(audienceList);
   };
 
   const handleAddParticipantsConfirm = (contactIds: string[]) => {
-    if (!newlyCreatedSegment) return;
+    if (!newlyCreatedAudienceList) return;
 
     toast.promise(
-      addContactsToSegmentMutation.mutateAsync({
-        segmentId: newlyCreatedSegment.id,
+      addContactsToAudienceListMutation.mutateAsync({
+        audienceListId: newlyCreatedAudienceList.id,
         contactIds,
       }),
       {
-        loading: `Adding ${contactIds.length} contacts to "${newlyCreatedSegment.name}"...`,
+        loading: `Adding ${contactIds.length} contacts to "${newlyCreatedAudienceList.name}"...`,
         success: () => {
-          setNewlyCreatedSegment(null); // Close the modal
+          setNewlyCreatedAudienceList(null); // Close the modal
           return 'Contacts added successfully!';
         },
         error: 'Failed to add contacts.',
@@ -559,38 +553,38 @@ export function ContactsPage() {
           csvData={csvData}
           onConfirm={handleMappingConfirm}
           onClose={() => setView('list')}
-          currentSegmentId={segmentId}
+          currentAudienceListId={audienceListId}
         />
       );
     }
     return null;
   };
 
-  if (isSegmentListView) {
+  if (isAudienceListView) {
     return (
       <div className="p-8 rounded-lg border border-border">
         <div className="flex justify-between items-center pb-4 mb-4 border-b">
           <div className="flex items-center space-x-2">
             <Users className="w-6 h-6 text-gray-500" />
-            <h1 className="text-xl font-semibold">Audience Segments</h1>
+            <h1 className="text-xl font-semibold">Audience Lists</h1>
           </div>
           <Button onClick={() => setView('add_selection')}>
             <Plus size={18} className="mr-2" />
             Add People
           </Button>
         </div>
-        <SegmentList
-          onSelectSegment={(id) =>
-            id ? navigate(`/contacts/segments/${id}`) : navigate('/contacts/all')
+        <AudienceLists
+          onSelectAudienceList={(id) =>
+            id ? navigate(`/contacts/audience-lists/${id}`) : navigate('/contacts/all')
           }
-          onSegmentCreated={handleSegmentCreated}
+          onAudienceListCreated={handleAudienceListCreated}
         />
         {renderContent()}
         <AddParticipantsModal
-          isOpen={!!newlyCreatedSegment}
-          onClose={() => setNewlyCreatedSegment(null)}
+          isOpen={!!newlyCreatedAudienceList}
+          onClose={() => setNewlyCreatedAudienceList(null)}
           onConfirm={handleAddParticipantsConfirm}
-          segmentName={newlyCreatedSegment?.name ?? ''}
+          audienceListName={newlyCreatedAudienceList?.name ?? ''}
         />
       </div>
     );
@@ -614,7 +608,7 @@ export function ContactsPage() {
           <div className="flex justify-between items-center mb-6">
             <div className="flex items-center">
               <h1 className="text-2xl font-semibold">
-                {isAllContactsView ? 'All Contacts' : 'Segment'}
+                {isAllContactsView ? 'All Contacts' : 'List'}
               </h1>
               <span className="px-2 py-1 ml-2 text-sm rounded-lg border text-muted-foreground border-border">
                 {totalContacts} people
@@ -710,11 +704,11 @@ export function ContactsPage() {
               onSelectAll={handleSelectAll}
               onDeleteSelected={() => setIsDeleteDialogOpen(true)}
               onEditSelected={handleEditSelected}
-              onAddToSegment={() => setIsAddToSegmentModalOpen(true)}
+              onAddToAudienceList={() => setIsAddToAudienceListModalOpen(true)}
               areFiltersActive={areFiltersActive}
-              onAddContact={() => setView('add_selection')}
-              isSegmentView={!!segmentId}
-              onRemoveFromSegment={() => setIsRemoveFromSegmentDialogOpen(true)}
+              onAddContact={() => setView('add_manual')}
+              isAudienceListView={!!audienceListId}
+              onRemoveFromAudienceList={() => setIsRemoveFromAudienceListDialogOpen(true)}
               onSort={handleSort}
               sortField={sortField}
               sortDirection={sortDirection}
@@ -748,18 +742,18 @@ export function ContactsPage() {
       {renderContent()}
 
       <AddParticipantsModal
-        isOpen={!!newlyCreatedSegment}
-        onClose={() => setNewlyCreatedSegment(null)}
+        isOpen={view === 'add-participants-to-list'}
+        onClose={() => setView('list')}
         onConfirm={handleAddParticipantsConfirm}
-        segmentName={newlyCreatedSegment?.name ?? ''}
+        audienceListName={newlyCreatedAudienceList?.name ?? ''}
       />
 
-      <AddToSegmentModal
-        isOpen={isAddToSegmentModalOpen}
-        onClose={() => setIsAddToSegmentModalOpen(false)}
-        onConfirm={handleAddToSegmentConfirm}
+      <AddToAudienceListModal
+        isOpen={isAddToAudienceListModalOpen}
+        onClose={() => setIsAddToAudienceListModalOpen(false)}
+        onConfirm={handleAddToAudienceListConfirm}
         contactCount={selectedContacts.length}
-        currentSegmentId={segmentId}
+        currentAudienceListId={audienceListId}
       />
 
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
@@ -780,20 +774,20 @@ export function ContactsPage() {
       </AlertDialog>
 
       <AlertDialog
-        open={isRemoveFromSegmentDialogOpen}
-        onOpenChange={setIsRemoveFromSegmentDialogOpen}
+        open={isRemoveFromAudienceListDialogOpen}
+        onOpenChange={setIsRemoveFromAudienceListDialogOpen}
       >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will remove the selected contacts from this segment, but they
+              This will remove the selected contacts from this list, but they
               will remain in your audience.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleRemoveFromSegment}>
+            <AlertDialogAction onClick={handleRemoveFromAudienceList}>
               Remove
             </AlertDialogAction>
           </AlertDialogFooter>

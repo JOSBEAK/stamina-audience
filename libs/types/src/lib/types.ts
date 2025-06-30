@@ -102,11 +102,11 @@ export const SendGridEventSchema = z
 
 export type SendGridEvent = z.infer<typeof SendGridEventSchema>;
 
-export interface CreateSegmentDto {
+export interface CreateAudienceListDto {
   name: string;
 }
 
-export interface Segment {
+export interface AudienceList {
   id: string;
   name: string;
   type: 'static' | 'dynamic';
@@ -118,6 +118,5 @@ export interface Segment {
   creator?: string | null;
   folder?: string | null;
   object?: 'Contact';
-  // This could be enhanced to show a count instead of the full member list for performance
   members?: { id: string }[];
 }

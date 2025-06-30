@@ -26,7 +26,7 @@ import { ListParamsDto } from '../common/dto/list-params.dto';
 interface ProcessCsvJob {
   fileKey: string;
   mapping: Record<string, string>;
-  segmentId?: string;
+  audienceListId?: string;
   // perhaps add userId here in the future
 }
 
@@ -253,78 +253,25 @@ export class ContactsService {
   }
 
   uploadCsv() {
-    this.logger.warn('CSV Upload endpoint called. Queueing is disabled.');
-    // Placeholder for async job logic
-    return { status: 'upload endpoint reached (queue disabled)' };
+    this.logger.warn('CSV upload endpoint is a placeholder.');
+    return { status: 'pending' };
   }
 
   async queueCsvProcessingJob(job: ProcessCsvJob): Promise<void> {
-    const queueName = 'csv-processing';
     try {
-      await this.sqsService.send(queueName, {
-        id: 'csv-processing-job', // This is message group ID, can be more dynamic
+      await this.sqsService.send('csv-processing', {
+        id: 'csv-job-' + Date.now(),
         body: job,
-        delaySeconds: 0,
+        // Fifo queues need a deduplication ID
+        // messageDeduplicationId: `job-${job.fileKey}`
       });
-      this.logger.log(`Successfully queued job for file: ${job.fileKey}`);
+      this.logger.log(`Queued CSV processing for file: ${job.fileKey}`);
     } catch (error) {
-      this.logger.error(
-        `Failed to queue CSV processing job for file: ${job.fileKey}`,
-        error
-      );
+      this.logger.error('Failed to queue CSV processing job', error);
       throw new InternalServerErrorException(
-        'Failed to queue CSV for processing.'
+        'Could not queue CSV processing job.'
       );
     }
-  }
-
-  async findSegmentContacts(segmentId: string, params: ListParamsDto) {
-    const {
-      page = 1,
-      limit = 10,
-      sort,
-      search,
-      role,
-      company,
-      location,
-      industry,
-    } = params;
-
-    const query = this.contactRepository
-      .createQueryBuilder('contact')
-      .innerJoin('contact.segmentMembers', 'segmentMember')
-      .where('segmentMember.segmentId = :segmentId', { segmentId });
-
-    if (search) {
-      query.andWhere(
-        new Brackets((qb) => {
-          qb.where('contact.name ILIKE :search', { search: `%${search}%` })
-            .orWhere('contact.email ILIKE :search', { search: `%${search}%` })
-            .orWhere('contact.company ILIKE :search', {
-              search: `%${search}%`,
-            });
-        })
-      );
-    }
-
-    this.applyFilters(query, { role, company, location, industry });
-
-    if (sort) {
-      const [order, direction] = sort.split(':');
-      query.orderBy(
-        `contact.${order}`,
-        direction.toUpperCase() as 'ASC' | 'DESC'
-      );
-    } else {
-      query.orderBy('contact.createdAt', 'DESC');
-    }
-
-    const [data, total] = await query
-      .skip((page - 1) * limit)
-      .take(limit)
-      .getManyAndCount();
-
-    return { data, total, page, limit };
   }
 
   private applyFilters(

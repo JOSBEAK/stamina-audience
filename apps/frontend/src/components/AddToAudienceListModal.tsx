@@ -15,35 +15,35 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { useSegments } from '@/hooks/useSegments';
-import { Segment } from '@stamina-project/types';
+import { useAudienceLists } from '@/hooks/useAudienceLists';
+import { AudienceList } from '@stamina-project/types';
 
-interface AddToSegmentModalProps {
+interface AddToAudienceListModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: (segmentId: string) => void;
+  onConfirm: (audienceListId: string) => void;
   contactCount: number;
-  currentSegmentId?: string | null;
+  currentAudienceListId?: string | null;
 }
 
-export function AddToSegmentModal({
+export function AddToAudienceListModal({
   isOpen,
   onClose,
   onConfirm,
   contactCount,
-  currentSegmentId,
-}: AddToSegmentModalProps) {
-  const [selectedSegment, setSelectedSegment] = useState<string>('');
-  const { data: segments, isLoading } = useSegments();
+  currentAudienceListId,
+}: AddToAudienceListModalProps) {
+  const [selectedAudienceList, setSelectedAudienceList] = useState<string>('');
+  const { data: audienceLists, isLoading } = useAudienceLists();
 
-  const availableSegments = React.useMemo(() => {
-    if (!segments) return [];
-    return segments.filter((segment) => segment.id !== currentSegmentId);
-  }, [segments, currentSegmentId]);
+  const availableAudienceLists = React.useMemo(() => {
+    if (!audienceLists) return [];
+    return audienceLists.filter((list) => list.id !== currentAudienceListId);
+  }, [audienceLists, currentAudienceListId]);
 
   const handleConfirm = () => {
-    if (selectedSegment) {
-      onConfirm(selectedSegment);
+    if (selectedAudienceList) {
+      onConfirm(selectedAudienceList);
     }
   };
 
@@ -51,15 +51,15 @@ export function AddToSegmentModal({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Add to Segment</DialogTitle>
+          <DialogTitle>Add to List</DialogTitle>
           <DialogDescription>
-            Select a segment to add the {contactCount} selected contact(s) to.
+            Select a list to add the {contactCount} selected contact(s) to.
           </DialogDescription>
         </DialogHeader>
         <div className="py-4">
-          <Select onValueChange={setSelectedSegment} value={selectedSegment}>
+          <Select onValueChange={setSelectedAudienceList} value={selectedAudienceList}>
             <SelectTrigger>
-              <SelectValue placeholder="Choose a segment..." />
+              <SelectValue placeholder="Choose a list..." />
             </SelectTrigger>
             <SelectContent>
               {isLoading ? (
@@ -67,9 +67,9 @@ export function AddToSegmentModal({
                   Loading...
                 </SelectItem>
               ) : (
-                availableSegments?.map((segment: Segment) => (
-                  <SelectItem key={segment.id} value={segment.id}>
-                    {segment.name}
+                availableAudienceLists?.map((list: AudienceList) => (
+                  <SelectItem key={list.id} value={list.id}>
+                    {list.name}
                   </SelectItem>
                 ))
               )}
@@ -80,8 +80,8 @@ export function AddToSegmentModal({
           <Button variant="ghost" onClick={onClose}>
             Cancel
           </Button>
-          <Button onClick={handleConfirm} disabled={!selectedSegment}>
-            Add to Segment
+          <Button onClick={handleConfirm} disabled={!selectedAudienceList}>
+            Add to List
           </Button>
         </DialogFooter>
       </DialogContent>

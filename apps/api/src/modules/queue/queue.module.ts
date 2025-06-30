@@ -3,7 +3,7 @@ import { CsvWorker } from './csv-worker';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { SqsModule } from '@ssut/nestjs-sqs';
 import { ContactsModule } from '../contacts/contacts.module';
-import { SegmentsModule } from '../segments/segments.module';
+import { AudienceListsModule } from '../audience-lists/audience-lists.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Contact } from '../../entities/contact.entity';
 
@@ -31,7 +31,7 @@ import { Contact } from '../../entities/contact.entity';
       inject: [ConfigService],
     }),
     forwardRef(() => ContactsModule),
-    SegmentsModule,
+    AudienceListsModule,
   ],
   controllers: [],
   providers: [CsvWorker],

@@ -7,16 +7,16 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { useSegments, useCreateSegment } from '@/hooks/useSegments'
+import { useAudienceLists, useCreateAudienceList } from '@/hooks/useAudienceLists'
 import { Input } from './ui/input'
 import { toast } from 'sonner'
 
 interface FieldMappingProps {
   onClose: () => void
-  onConfirm: (mapping: Record<string, string>, segmentId?: string) => void
+  onConfirm: (mapping: Record<string, string>, audienceListId?: string) => void
   csvData: any[]
   csvHeaders: string[]
-  currentSegmentId?: string
+  currentAudienceListId?: string
 }
 
 const APP_FIELDS = [
@@ -29,15 +29,15 @@ const APP_FIELDS = [
   { key: "avatar", label: "Avatar", required: true },
 ]
 
-export default function FieldMapping({ onClose, onConfirm, csvData, csvHeaders, currentSegmentId }: FieldMappingProps) {
+export default function FieldMapping({ onClose, onConfirm, csvData, csvHeaders, currentAudienceListId }: FieldMappingProps) {
   const [mapping, setMapping] = useState<Record<string, string>>({})
   const [ignoreEmpty, setIgnoreEmpty] = useState(true)
   const [showPreview, setShowPreview] = useState(false)
-  const [selectedSegment, setSelectedSegment] = useState<string>(currentSegmentId || 'new_segment')
-  const [newSegmentName, setNewSegmentName] = useState('')
+  const [selectedAudienceList, setSelectedAudienceList] = useState<string>(currentAudienceListId || 'new_list')
+  const [newAudienceListName, setNewAudienceListName] = useState('')
 
-  const { data: segments, isLoading: isLoadingSegments } = useSegments()
-  const createSegmentMutation = useCreateSegment()
+  const { data: audienceLists, isLoading: isLoadingAudienceLists } = useAudienceLists()
+  const createAudienceListMutation = useCreateAudienceList()
 
   // Auto-map fields on component mount
   useEffect(() => {
@@ -65,29 +65,29 @@ export default function FieldMapping({ onClose, onConfirm, csvData, csvHeaders, 
   }, [csvHeaders])
 
   const handleConfirmClick = async () => {
-    if (selectedSegment === 'new_segment' && !newSegmentName.trim()) {
-      toast.error('Please enter a name for the new segment.');
+    if (selectedAudienceList === 'new_list' && !newAudienceListName.trim()) {
+      toast.error('Please enter a name for the new audience list.');
       return;
     }
 
-    let segmentIdToUse: string | undefined = undefined;
+    let audienceListIdToUse: string | undefined = undefined;
 
-    if (selectedSegment === 'new_segment') {
+    if (selectedAudienceList === 'new_list') {
       try {
-        const newSegment = await createSegmentMutation.mutateAsync({
-          name: newSegmentName.trim(),
+        const newAudienceList = await createAudienceListMutation.mutateAsync({
+          name: newAudienceListName.trim(),
         });
-        segmentIdToUse = newSegment.id;
-        toast.success(`Segment "${newSegment.name}" created.`);
+        audienceListIdToUse = newAudienceList.id;
+        toast.success(`Audience List "${newAudienceList.name}" created.`);
       } catch (error) {
-        toast.error('Failed to create new segment.');
+        toast.error('Failed to create new audience list.');
         return;
       }
     } else {
-      segmentIdToUse = selectedSegment;
+      audienceListIdToUse = selectedAudienceList;
     }
 
-    onConfirm(mapping, segmentIdToUse);
+    onConfirm(mapping, audienceListIdToUse);
   };
 
   // Calculate statistics
@@ -373,33 +373,40 @@ export default function FieldMapping({ onClose, onConfirm, csvData, csvHeaders, 
             </Card>
 
             <div className="mt-8 pt-6 border-t">
-              <h3 className="text-lg font-semibold mb-4">Add to Segment</h3>
+              <h3 className="text-lg font-semibold mb-4">Add to Audience List</h3>
               <p className="text-sm text-muted-foreground mb-4">
-                Organize these new contacts by adding them to a segment. You can
+                Organize these new contacts by adding them to an audience list. You can
                 choose an existing one or create a new one.
               </p>
-              <Select onValueChange={setSelectedSegment} value={selectedSegment}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a segment" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="new_segment">Create new segment</SelectItem>
-                  {segments?.map((segment) => (
-                    <SelectItem key={segment.id} value={segment.id}>
-                      {segment.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              {selectedSegment === 'new_segment' && (
-                <Input
-                  placeholder="New segment name..."
-                  className="mt-2"
-                  value={newSegmentName}
-                  onChange={(e) => setNewSegmentName(e.target.value)}
-                />
-              )}
+              <div className="grid grid-cols-2 items-start gap-4">
+                <p className="text-sm font-medium">Add contacts to:</p>
+                <div className="space-y-2">
+                  <Select onValueChange={setSelectedAudienceList} value={selectedAudienceList}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select an audience list" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="new_list">Create new audience list</SelectItem>
+                      {isLoadingAudienceLists ? (
+                        <SelectItem value="loading" disabled>Loading lists...</SelectItem>
+                      ) : (
+                        audienceLists?.map((list) => (
+                          <SelectItem key={list.id} value={list.id}>
+                            {list.name}
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
+                  {selectedAudienceList === 'new_list' && (
+                    <Input
+                      placeholder="New audience list name..."
+                      value={newAudienceListName}
+                      onChange={(e) => setNewAudienceListName(e.target.value)}
+                    />
+                  )}
+                </div>
+              </div>
             </div>
           </div>
 
@@ -423,10 +430,10 @@ export default function FieldMapping({ onClose, onConfirm, csvData, csvHeaders, 
                 </Button>
                 <Button
                   onClick={handleConfirmClick}
-                  disabled={!stats.allRequiredFieldsMapped || createSegmentMutation.isPending}
+                  disabled={!stats.allRequiredFieldsMapped || createAudienceListMutation.isPending}
                   className="w-full md:w-auto"
                 >
-                  {createSegmentMutation.isPending ? 'Creating Segment...' : 'Confirm and Upload'}
+                  {createAudienceListMutation.isPending ? 'Creating Audience List...' : 'Confirm and Upload'}
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </div>

@@ -8,13 +8,13 @@ import { Repository, In } from 'typeorm';
 import { Contact } from '../../entities/contact.entity';
 import { CreateContactDto } from '../contacts/dto/contact.dto';
 import * as Papa from 'papaparse';
-import { SegmentsService } from '../segments/segments.service';
+import { AudienceListsService } from '../audience-lists/audience-lists.service';
 import { ContactsService } from '../contacts/contacts.service';
 
 interface CsvProcessRequest {
   fileKey: string;
   mapping: Record<string, string>;
-  segmentId?: string;
+  audienceListId?: string;
 }
 
 @Injectable()
@@ -27,7 +27,7 @@ export class CsvWorker {
     private readonly configService: ConfigService,
     @InjectRepository(Contact)
     private readonly contactsRepository: Repository<Contact>,
-    private readonly segmentsService: SegmentsService,
+    private readonly audienceListsService: AudienceListsService,
     private readonly contactsService: ContactsService
   ) {
     const accountId = this.configService.get<string>('CLOUDFLARE_ACCOUNT_ID');
@@ -135,14 +135,17 @@ export class CsvWorker {
           locationId: locationId,
         });
 
-        if (job.segmentId && processedContacts.length > 0) {
+        if (job.audienceListId && processedContacts.length > 0) {
           this.logger.log(
-            `Adding ${processedContacts.length} contacts to segment ${job.segmentId}.`
+            `Adding ${processedContacts.length} contacts to audience list ${job.audienceListId}.`
           );
-          await this.segmentsService.addContactsToSegment(job.segmentId, {
-            contactIds: processedContacts.map((c) => c.id),
-          });
-          this.logger.log(`Successfully added contacts to segment.`);
+          await this.audienceListsService.addContactsToAudienceList(
+            job.audienceListId,
+            {
+              contactIds: processedContacts.map((c) => c.id),
+            }
+          );
+          this.logger.log(`Successfully added contacts to audience list.`);
         }
       }
 

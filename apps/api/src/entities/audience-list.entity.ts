@@ -8,15 +8,15 @@ import {
   DeleteDateColumn,
   Index,
 } from 'typeorm';
-import { SegmentMember } from './segment-member.entity';
+import { AudienceListMember } from './audience-list-member.entity';
 
-export enum SegmentType {
+export enum AudienceListType {
   STATIC = 'static',
   DYNAMIC = 'dynamic',
 }
 
-@Entity('segments')
-export class Segment {
+@Entity('audience_lists')
+export class AudienceList {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
@@ -29,9 +29,9 @@ export class Segment {
 
   @Column({
     type: 'enum',
-    enum: SegmentType,
+    enum: AudienceListType,
   })
-  type: SegmentType;
+  type: AudienceListType;
 
   @Column({ name: 'rules_json', type: 'jsonb', nullable: true })
   rulesJson: Record<string, any>;
@@ -58,8 +58,8 @@ export class Segment {
   })
   searchVector: string;
 
-  @OneToMany(() => SegmentMember, (member) => member.segment)
-  members: SegmentMember[];
+  @OneToMany(() => AudienceListMember, (member) => member.audienceList)
+  members: AudienceListMember[];
 
   @Column({ name: 'used_in_count', type: 'int', default: 0 })
   usedInCount: number;
