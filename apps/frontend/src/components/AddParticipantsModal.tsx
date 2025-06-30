@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -41,6 +41,8 @@ export function AddParticipantsModal({
     search: debouncedSearch,
     page: currentPage,
     limit,
+  }, {
+    enabled: isOpen,    
   });
 
   const contacts = data?.data ?? [];

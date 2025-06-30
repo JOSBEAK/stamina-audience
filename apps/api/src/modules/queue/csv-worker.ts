@@ -3,10 +3,13 @@ import { SqsMessageHandler } from '@ssut/nestjs-sqs';
 import { Message } from '@aws-sdk/client-sqs';
 import { ConfigService } from '@nestjs/config';
 import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
-import { ContactsService } from '../contacts/contacts.service';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository, In } from 'typeorm';
+import { Contact } from '../../entities/contact.entity';
 import { CreateContactDto } from '../contacts/dto/contact.dto';
 import * as Papa from 'papaparse';
 import { SegmentsService } from '../segments/segments.service';
+import { ContactsService } from '../contacts/contacts.service';
 
 interface CsvProcessRequest {
   fileKey: string;
@@ -22,8 +25,10 @@ export class CsvWorker {
 
   constructor(
     private readonly configService: ConfigService,
-    private readonly contactsService: ContactsService,
-    private readonly segmentsService: SegmentsService
+    @InjectRepository(Contact)
+    private readonly contactsRepository: Repository<Contact>,
+    private readonly segmentsService: SegmentsService,
+    private readonly contactsService: ContactsService
   ) {
     const accountId = this.configService.get<string>('CLOUDFLARE_ACCOUNT_ID');
     this.bucketName = this.configService.get<string>('CLOUDFLARE_BUCKET_NAME');
@@ -102,17 +107,40 @@ export class CsvWorker {
       this.logger.log(`Parsed ${contactsToCreate.length} contacts from CSV.`);
 
       if (contactsToCreate.length > 0) {
-        const newContacts = await this.contactsService.createBatch(
-          contactsToCreate
+        // This uses a raw `INSERT ... ON CONFLICT DO UPDATE` for performance and to handle duplicates.
+        const columns = Object.keys(contactsToCreate[0]).filter(
+          (key) => key !== 'email'
         );
-        this.logger.log(`Successfully created ${newContacts.length} contacts.`);
+        const onConflict = `("email") DO UPDATE SET ${columns
+          .map((col) => `"${col}" = EXCLUDED."${col}"`)
+          .join(', ')}`;
 
-        if (job.segmentId && newContacts.length > 0) {
+        await this.contactsRepository
+          .createQueryBuilder()
+          .insert()
+          .into(Contact)
+          .values(contactsToCreate)
+          .onConflict(onConflict)
+          .execute();
+
+        this.logger.log(
+          `Successfully upserted ${contactsToCreate.length} contacts.`
+        );
+
+        // The result of an upsert doesn't return the full entity objects,
+        // so we need to fetch the contacts we just processed to get their IDs.
+        const emails = contactsToCreate.map((c) => c.email);
+        const processedContacts = await this.contactsRepository.findBy({
+          email: In(emails),
+          locationId: locationId,
+        });
+
+        if (job.segmentId && processedContacts.length > 0) {
           this.logger.log(
-            `Adding ${newContacts.length} contacts to segment ${job.segmentId}.`
+            `Adding ${processedContacts.length} contacts to segment ${job.segmentId}.`
           );
           await this.segmentsService.addContactsToSegment(job.segmentId, {
-            contactIds: newContacts.map((c) => c.id),
+            contactIds: processedContacts.map((c) => c.id),
           });
           this.logger.log(`Successfully added contacts to segment.`);
         }

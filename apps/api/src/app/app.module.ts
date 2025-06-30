@@ -1,5 +1,4 @@
 import { Module } from '@nestjs/common';
-import { SqsModule } from '@ssut/nestjs-sqs';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 

@@ -4,10 +4,13 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { SqsModule } from '@ssut/nestjs-sqs';
 import { ContactsModule } from '../contacts/contacts.module';
 import { SegmentsModule } from '../segments/segments.module';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { Contact } from '../../entities/contact.entity';
 
 @Module({
   imports: [
     ConfigModule,
+    TypeOrmModule.forFeature([Contact]),
     SqsModule.registerAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({

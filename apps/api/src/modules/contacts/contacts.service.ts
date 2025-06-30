@@ -5,7 +5,7 @@ import {
   InternalServerErrorException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Brackets } from 'typeorm';
+import { Repository, Brackets, SelectQueryBuilder } from 'typeorm';
 import { SqsService } from '@ssut/nestjs-sqs';
 import { ConfigService } from '@nestjs/config';
 import { Contact } from '../../entities/contact.entity';
@@ -322,7 +322,7 @@ export class ContactsService {
   }
 
   private applyFilters(
-    query: any,
+    query: SelectQueryBuilder<Contact>,
     filters: {
       role?: string;
       company?: string;
