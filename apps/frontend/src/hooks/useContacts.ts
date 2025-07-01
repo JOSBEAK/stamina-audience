@@ -9,7 +9,7 @@ import {
   getUniqueCompanies,
   GetContactsParams,
   createContact,
-} from '../utils/api';
+} from '@stamina-project/api-client';
 
 export const useContacts = (
   params: GetContactsParams,

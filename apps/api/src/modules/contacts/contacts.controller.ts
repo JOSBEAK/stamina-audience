@@ -102,6 +102,9 @@ export class ContactsController {
   @HttpCode(202)
   @ApiOperation({ summary: 'Queue a CSV file for processing' })
   async processCsv(@Body() processCsvDto: ProcessCsvDto) {
+    this.logger.log(
+      `[DEBUG] processCsv received fileKey: ${processCsvDto.fileKey}`
+    );
     await this.contactsService.queueCsvProcessingJob(processCsvDto);
     return {
       message: 'CSV file is being processed.',

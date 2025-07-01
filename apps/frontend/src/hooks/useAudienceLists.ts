@@ -8,7 +8,7 @@ import {
   softDeleteAudienceList,
   getDeletedAudienceLists,
   restoreAudienceList,
-} from '../utils/api';
+} from '@stamina-project/api-client';
 import { CreateAudienceListDto } from '@stamina-project/types';
 
 export const useAudienceLists = (

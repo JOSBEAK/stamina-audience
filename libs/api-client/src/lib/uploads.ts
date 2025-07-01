@@ -1,8 +1,20 @@
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import { apiClient } from './client';
 
-// A utility for uploading files to Cloudflare R2.
-// This might be used to get a pre-signed URL from the backend
-// or to upload directly if the client has credentials.
+// --- Upload API Functions ---
+
+export const getPresignedUrl = async (
+  fileName: string,
+  fileType: string
+): Promise<{ presignedUrl: string; publicUrl: string; fileKey: string }> => {
+  const { data } = await apiClient.post('/uploads/presigned-url', {
+    fileName,
+    fileType,
+  });
+  return data;
+};
+
+// --- Direct Upload Utilities ---
 
 interface UploadToR2Params {
   file: File;

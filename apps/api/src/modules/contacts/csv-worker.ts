@@ -112,6 +112,7 @@ export class CsvWorker
       throw new Error('Service is not configured with a LOCATION_ID.');
     }
 
+    this.logger.log(`[DEBUG] processCsvFile received fileKey: ${job.fileKey}`);
     this.logger.log(`Processing CSV file from key: ${job.fileKey}`);
 
     // Download file from storage

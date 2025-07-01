@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { searchAttributes } from '@/utils/api';
+import { searchAttributes } from '@stamina-project/api-client';
 
 const prefetchAttributes = ['role', 'industry', 'company', 'location'] as const;
 

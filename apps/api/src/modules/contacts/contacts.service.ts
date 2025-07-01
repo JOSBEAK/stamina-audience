@@ -222,6 +222,9 @@ export class ContactsService {
 
   async queueCsvProcessingJob(job: ProcessCsvJob): Promise<void> {
     try {
+      this.logger.log(
+        `[DEBUG] queueCsvProcessingJob sending fileKey: ${job.fileKey}`
+      );
       await this.sqsService.send('csv-processing', {
         id: 'csv-job-' + Date.now(),
         body: job,

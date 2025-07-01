@@ -28,7 +28,7 @@ import FieldMapping from '@/components/FieldMapping';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useDebounce } from '@/hooks/useDebounce';
-import { searchAttributes, getPresignedUrl, processCsv } from '@/utils/api';
+import { searchAttributes, getPresignedUrl, processCsv } from '@stamina-project/api-client';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -347,7 +347,7 @@ export function ContactsPage() {
 
     const uploadPromise = async () => {
       try {
-        const { presignedUrl, publicUrl } = await getPresignedUrl(
+        const { presignedUrl, publicUrl, fileKey } = await getPresignedUrl(
           csvFile.name,
           csvFile.type
         );
@@ -357,11 +357,6 @@ export function ContactsPage() {
           body: csvFile,
           headers: { 'Content-Type': csvFile.type },
         });
-
-        const fileKey = publicUrl.split('/').pop();
-        if (!fileKey) {
-          throw new Error('Could not determine file key from public URL.');
-        }
 
         await processCsv({
           fileKey,
