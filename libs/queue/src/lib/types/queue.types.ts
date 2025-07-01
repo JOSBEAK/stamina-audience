@@ -1,5 +1,3 @@
-import { Message } from '@aws-sdk/client-sqs';
-
 /**
  * Base interface for all queue messages
  */
@@ -41,7 +39,17 @@ export interface FileProcessRequest extends BaseQueueMessage {
   fileKey: string;
   originalFileName?: string;
   contentType?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
+}
+
+/**
+ * Queue message processing context
+ */
+export interface QueueMessageContext {
+  correlationId?: string;
+  userId?: string;
+  operation?: string;
+  metadata?: Record<string, unknown>;
 }
 
 /**
@@ -49,7 +57,7 @@ export interface FileProcessRequest extends BaseQueueMessage {
  */
 export type MessageProcessor<T extends BaseQueueMessage> = (
   message: T,
-  context?: any
+  context?: QueueMessageContext
 ) => Promise<void>;
 
 /**
@@ -67,7 +75,7 @@ export interface QueueWorkerOptions {
  */
 export interface FileDownloadResult {
   stream: NodeJS.ReadableStream;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   contentType?: string;
   contentLength?: number;
 }

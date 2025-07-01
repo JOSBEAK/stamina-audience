@@ -1,6 +1,7 @@
 import { Injectable, Inject, Logger } from '@nestjs/common';
 import {
   S3Client,
+  S3ClientConfig,
   PutObjectCommand,
   GetObjectCommand,
   DeleteObjectCommand,
@@ -34,7 +35,7 @@ export class StorageService {
    * @returns Configured S3Client instance
    */
   private createS3Client(): S3Client {
-    const clientConfig: any = {
+    const clientConfig: S3ClientConfig = {
       region: this.config.region,
       credentials: {
         accessKeyId: this.config.credentials.accessKeyId,
@@ -218,18 +219,19 @@ export class StorageService {
       await this.s3Client.send(command);
       return true;
     } catch (error) {
-      const err = error as any;
+      const err = error as Error & {
+        name?: string;
+        $metadata?: { httpStatusCode?: number };
+      };
       if (err.name === 'NotFound' || err.$metadata?.httpStatusCode === 404) {
         return false;
       }
 
       this.logger.error(
         `Failed to check file existence for ${fileKey}`,
-        (err as Error).stack
+        err.stack
       );
-      throw new Error(
-        `Failed to check file existence: ${(err as Error).message}`
-      );
+      throw new Error(`Failed to check file existence: ${err.message}`);
     }
   }
 
@@ -239,7 +241,7 @@ export class StorageService {
    * @param fileKey - Key/path of the file
    * @returns Promise resolving to file metadata
    */
-  async getFileMetadata(fileKey: string): Promise<Record<string, any>> {
+  async getFileMetadata(fileKey: string): Promise<Record<string, unknown>> {
     try {
       const command = new HeadObjectCommand({
         Bucket: this.config.bucket,

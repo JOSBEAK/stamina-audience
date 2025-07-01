@@ -1,4 +1,5 @@
 import { QueueConfig } from '../types/queue.types';
+import { ModuleAsyncOptions } from '@stamina-project/common';
 
 /**
  * Configuration for the queue module
@@ -12,10 +13,4 @@ export interface QueueModuleConfig {
 /**
  * Async configuration factory function
  */
-export interface QueueModuleAsyncConfig {
-  imports?: any[];
-  useFactory: (
-    ...args: any[]
-  ) => Promise<QueueModuleConfig> | QueueModuleConfig;
-  inject?: any[];
-}
+export type QueueModuleAsyncConfig = ModuleAsyncOptions<QueueModuleConfig>;

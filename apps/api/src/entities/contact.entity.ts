@@ -211,7 +211,7 @@ export class Contact {
     default: {},
     name: 'linkedin_meta',
   })
-  linkedInMeta: Record<string, any>;
+  linkedInMeta: Record<string, unknown>;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

@@ -5,6 +5,7 @@ import { SqsMessageHandler } from '@ssut/nestjs-sqs';
 import { Message } from '@aws-sdk/client-sqs';
 import { Repository, In } from 'typeorm';
 import * as Papa from 'papaparse';
+import { CsvRowData } from '@stamina-project/types';
 
 import {
   BaseQueueWorker,
@@ -162,7 +163,7 @@ export class CsvWorker
         header: true,
         skipEmptyLines: true,
         step: (results) => {
-          const row = results.data as Record<string, any>;
+          const row = results.data as CsvRowData;
           const mappedObject: Partial<CreateContactDto> = {};
 
           // Apply field mapping

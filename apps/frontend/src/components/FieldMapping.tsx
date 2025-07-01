@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react"
-import type { Contact } from "@stamina-project/types"
+import type { Contact, CsvRowData, FieldMappingConfig } from "@stamina-project/types"
 import { X, ArrowRight, Check, AlertCircle, RotateCcw, Eye, EyeOff } from "lucide-react"
 import { Button } from "./ui/button"
 import { Checkbox } from "./ui/checkbox"
@@ -13,8 +13,8 @@ import { toast } from 'sonner'
 
 interface FieldMappingProps {
   onClose: () => void
-  onConfirm: (mapping: Record<string, string>, audienceListId?: string) => void
-  csvData: any[]
+  onConfirm: (mapping: FieldMappingConfig, audienceListId?: string) => void
+  csvData: CsvRowData[]
   csvHeaders: string[]
   currentAudienceListId?: string
 }
@@ -30,7 +30,7 @@ const APP_FIELDS = [
 ]
 
 export default function FieldMapping({ onClose, onConfirm, csvData, csvHeaders, currentAudienceListId }: FieldMappingProps) {
-  const [mapping, setMapping] = useState<Record<string, string>>({})
+  const [mapping, setMapping] = useState<FieldMappingConfig>({})
   const [ignoreEmpty, setIgnoreEmpty] = useState(true)
   const [showPreview, setShowPreview] = useState(false)
   const [selectedAudienceList, setSelectedAudienceList] = useState<string>(currentAudienceListId || 'new_list')
@@ -81,6 +81,7 @@ export default function FieldMapping({ onClose, onConfirm, csvData, csvHeaders, 
         toast.success(`Audience List "${newAudienceList.name}" created.`);
       } catch (error) {
         toast.error('Failed to create new audience list.');
+        console.error(error);
         return;
       }
     } else {
@@ -101,12 +102,12 @@ export default function FieldMapping({ onClose, onConfirm, csvData, csvHeaders, 
       const newRow: Partial<Contact> = {};
       let hasRequiredValues = true;
       for (const csvHeader in mapping) {
-        const appField = mapping[csvHeader] as keyof Contact;
+        const appField = mapping[csvHeader];
         const value = row[csvHeader] ? String(row[csvHeader]).trim() : '';
-        if (value) {
-          newRow[appField] = value;
+        if (value && appField) {
+          (newRow as Record<string, unknown>)[appField] = value;
         }
-        if (requiredFields.includes(appField as string) && !value) {
+        if (requiredFields.includes(appField) && !value) {
           hasRequiredValues = false;
         }
       }
@@ -138,7 +139,7 @@ export default function FieldMapping({ onClose, onConfirm, csvData, csvHeaders, 
       allRequiredFieldsMapped,
       processedData: processedData.slice(0, 3), // Preview first 3 rows
     }
-  }, [csvData, mapping, ignoreEmpty])
+  }, [csvData, mapping, ignoreEmpty, csvHeaders.length])
 
   const handleMappingChange = (csvHeader: string, appField: string) => {
     setMapping((prev) => {
@@ -162,42 +163,52 @@ export default function FieldMapping({ onClose, onConfirm, csvData, csvHeaders, 
     setMapping({})
   }
 
-  const getSampleData = (header: string) => {
-    const samples = csvData
-      .slice(0, 3)
-      .map((row) => row[header])
-      .filter((val) => val && String(val).trim())
-      .slice(0, 2)
-    return samples.length > 0 ? samples.join(", ") : "No data"
+  // const getSampleData = (header: string) => {
+  //   const samples = csvData
+  //     .slice(0, 3)
+  //     .map((row) => row[header])
+  //     .filter((val) => val && String(val).trim())
+  //     .slice(0, 2)
+  //   return samples.length > 0 ? samples.join(", ") : "No data"
+  // }
+
+  const renderCellValue = (value: unknown): string => {
+    if (value === null || value === undefined) return "-";
+    if (typeof value === 'string') return value;
+    if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+    if (value instanceof Date) return value.toLocaleDateString();
+    if (Array.isArray(value)) return value.length > 0 ? `[${value.length} items]` : "[]";
+    if (typeof value === 'object') return "[Object]";
+    return String(value);
   }
 
   const canProceed = stats.requiredFieldsMapped === stats.totalRequiredFields && stats.validRows > 0
 
   return (
     <TooltipProvider>
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+      <div className="flex fixed inset-0 z-50 justify-center items-center bg-black bg-opacity-50">
         <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
           {/* Header */}
           <div className="flex justify-between items-center p-6 border-b">
             <div>
               <h2 className="text-xl font-semibold">Map CSV Fields</h2>
-              <p className="text-sm text-muted-foreground mt-1">Match your CSV columns to contact fields</p>
+              <p className="mt-1 text-sm text-muted-foreground">Match your CSV columns to contact fields</p>
             </div>
             <Button variant="ghost" size="icon" onClick={onClose}>
               <X size={20} />
             </Button>
           </div>
 
-          <div className="flex-1 overflow-auto p-6">
+          <div className="overflow-auto flex-1 p-6">
             {/* Statistics Card */}
             <Card className="mb-6">
               <CardHeader className="pb-3">
-                <CardTitle className="text-lg flex items-center gap-2">
+                <CardTitle className="flex gap-2 items-center text-lg">
                   Import Summary
                   {!canProceed && (
                     <Tooltip>
                       <TooltipTrigger>
-                        <AlertCircle className="h-4 w-4 text-amber-500" />
+                        <AlertCircle className="w-4 h-4 text-amber-500" />
                       </TooltipTrigger>
                       <TooltipContent>
                         <p>Map required fields to proceed</p>
@@ -207,7 +218,7 @@ export default function FieldMapping({ onClose, onConfirm, csvData, csvHeaders, 
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
                   <div className="text-center">
                     <div className="text-2xl font-bold text-blue-600">{stats.totalRows}</div>
                     <div className="text-sm text-muted-foreground">Total Rows</div>
@@ -235,9 +246,9 @@ export default function FieldMapping({ onClose, onConfirm, csvData, csvHeaders, 
                 </div>
 
                 {stats.validRows !== stats.totalRows && (
-                  <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-md">
+                  <div className="p-3 mt-4 bg-amber-50 rounded-md border border-amber-200">
                     <p className="text-sm text-amber-800">
-                      <AlertCircle className="h-4 w-4 inline mr-1" />
+                      <AlertCircle className="inline mr-1 w-4 h-4" />
                       {stats.totalRows - stats.validRows} rows will be skipped due to missing data
                     </p>
                   </div>
@@ -252,11 +263,11 @@ export default function FieldMapping({ onClose, onConfirm, csvData, csvHeaders, 
                   <CardTitle className="text-lg">Field Mapping</CardTitle>
                   <div className="flex gap-2">
                     <Button variant="outline" size="sm" onClick={() => setShowPreview(!showPreview)}>
-                      {showPreview ? <EyeOff className="h-4 w-4 mr-1" /> : <Eye className="h-4 w-4 mr-1" />}
+                      {showPreview ? <EyeOff className="mr-1 w-4 h-4" /> : <Eye className="mr-1 w-4 h-4" />}
                       {showPreview ? "Hide" : "Show"} Preview
                     </Button>
                     <Button variant="outline" size="sm" onClick={clearAllMappings}>
-                      <RotateCcw className="h-4 w-4 mr-1" />
+                      <RotateCcw className="mr-1 w-4 h-4" />
                       Clear All
                     </Button>
                   </div>
@@ -267,16 +278,16 @@ export default function FieldMapping({ onClose, onConfirm, csvData, csvHeaders, 
                   {csvHeaders.map((header) => (
                     <div key={header} className="grid grid-cols-12 gap-4 items-center">
                       <div className="col-span-4">
-                        <div className="p-3 border rounded-md bg-gray-50">
-                          <div className="font-medium text-sm">{header}</div>
+                        <div className="p-3 bg-gray-50 rounded-md border">
+                          <div className="text-sm font-medium">{header}</div>
                           {/* <div className="text-xs text-muted-foreground mt-1 max-w-[200px] truncate">
                             Sample: {getSampleData(header)}
                           </div> */}
                         </div>
                       </div>
 
-                      <div className="col-span-1 flex justify-center">
-                        <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                      <div className="flex col-span-1 justify-center">
+                        <ArrowRight className="w-4 h-4 text-muted-foreground" />
                       </div>
 
                       <div className="col-span-6">
@@ -295,7 +306,7 @@ export default function FieldMapping({ onClose, onConfirm, csvData, csvHeaders, 
                                 value={field.key}
                                 disabled={Object.values(mapping).includes(field.key) && mapping[header] !== field.key}
                               >
-                                <div className="flex items-center gap-2">
+                                <div className="flex gap-2 items-center">
                                   {field.label}
                                   {field.required && (
                                     <Badge variant="secondary" className="text-xs">
@@ -309,8 +320,8 @@ export default function FieldMapping({ onClose, onConfirm, csvData, csvHeaders, 
                         </Select>
                       </div>
 
-                      <div className="col-span-1 flex justify-center">
-                        {mapping[header] && <Check className="h-4 w-4 text-green-500" />}
+                      <div className="flex col-span-1 justify-center">
+                        {mapping[header] && <Check className="w-4 h-4 text-green-500" />}
                       </div>
                     </div>
                   ))}
@@ -331,7 +342,7 @@ export default function FieldMapping({ onClose, onConfirm, csvData, csvHeaders, 
                       <thead>
                         <tr className="border-b">
                           {Object.values(mapping).map((field) => (
-                            <th key={field} className="text-left p-2 font-medium">
+                            <th key={field} className="p-2 font-medium text-left">
                               {APP_FIELDS.find((f) => f.key === field)?.label || field}
                             </th>
                           ))}
@@ -342,7 +353,7 @@ export default function FieldMapping({ onClose, onConfirm, csvData, csvHeaders, 
                           <tr key={index} className="border-b">
                             {Object.values(mapping).map((field) => (
                               <td key={field} className="p-2">
-                                {row[field as keyof Contact] || "-"}
+                                {renderCellValue(row[field as keyof Contact])}
                               </td>
                             ))}
                           </tr>
@@ -351,7 +362,7 @@ export default function FieldMapping({ onClose, onConfirm, csvData, csvHeaders, 
                     </table>
                   </div>
                   {stats.validRows > 3 && (
-                    <p className="text-xs text-muted-foreground mt-2">
+                    <p className="mt-2 text-xs text-muted-foreground">
                       Showing first 3 rows of {stats.validRows} total rows
                     </p>
                   )}
@@ -365,20 +376,20 @@ export default function FieldMapping({ onClose, onConfirm, csvData, csvHeaders, 
                 <CardTitle className="text-lg">Import Options</CardTitle>
               </CardHeader>
               <CardContent>
-                <label className="flex items-center gap-2 cursor-pointer">
+                <label className="flex gap-2 items-center cursor-pointer">
                   <Checkbox checked={ignoreEmpty} onCheckedChange={(checked) => setIgnoreEmpty(Boolean(checked))} />
                   <span className="text-sm">Skip rows with empty required fields</span>
                 </label>
               </CardContent>
             </Card>
 
-            <div className="mt-8 pt-6 border-t">
-              <h3 className="text-lg font-semibold mb-4">Add to Audience List</h3>
-              <p className="text-sm text-muted-foreground mb-4">
+            <div className="pt-6 mt-8 border-t">
+              <h3 className="mb-4 text-lg font-semibold">Add to Audience List</h3>
+              <p className="mb-4 text-sm text-muted-foreground">
                 Organize these new contacts by adding them to an audience list. You can
                 choose an existing one or create a new one.
               </p>
-              <div className="grid grid-cols-2 items-start gap-4">
+              <div className="grid grid-cols-2 gap-4 items-start">
                 <p className="text-sm font-medium">Add contacts to:</p>
                 <div className="space-y-2">
                   <Select onValueChange={setSelectedAudienceList} value={selectedAudienceList}>
@@ -411,11 +422,11 @@ export default function FieldMapping({ onClose, onConfirm, csvData, csvHeaders, 
           </div>
 
           {/* Footer */}
-          <div className="border-t p-6">
+          <div className="p-6 border-t">
             <div className="flex justify-between items-center">
               <div className="text-sm text-muted-foreground">
                 {canProceed ? (
-                  <span className="text-green-600 font-medium">✓ Ready to import {stats.validRows} contacts</span>
+                  <span className="font-medium text-green-600">✓ Ready to import {stats.validRows} contacts</span>
                 ) : (
                   <span className="text-red-600">Please map all required fields to continue</span>
                 )}
@@ -434,7 +445,7 @@ export default function FieldMapping({ onClose, onConfirm, csvData, csvHeaders, 
                   className="w-full md:w-auto"
                 >
                   {createAudienceListMutation.isPending ? 'Creating Audience List...' : 'Confirm and Upload'}
-                  <ArrowRight className="ml-2 h-4 w-4" />
+                  <ArrowRight className="ml-2 w-4 h-4" />
                 </Button>
               </div>
             </div>

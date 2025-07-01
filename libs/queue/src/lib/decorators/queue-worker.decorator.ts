@@ -28,9 +28,10 @@ export function QueueWorker(options: QueueWorkerOptions) {
  * Helper function to get queue worker options from a class instance
  */
 export function getQueueWorkerOptions(
-  instance: any
+  instance: unknown
 ): QueueWorkerOptions | undefined {
-  return instance._queueWorkerOptions;
+  return (instance as { _queueWorkerOptions?: QueueWorkerOptions })
+    ._queueWorkerOptions;
 }
 
 /**
@@ -45,12 +46,13 @@ export abstract class BaseQueueWorker {
    * @param error The error that occurred
    * @param context Additional context for the error
    */
-  protected handleError(error: any, context?: string): void {
+  protected handleError(error: unknown, context?: string): void {
+    const err = error as Error;
     const errorMessage = context
-      ? `${context}: ${error.message || error}`
-      : error.message || error;
+      ? `${context}: ${err.message || String(error)}`
+      : err.message || String(error);
 
-    this.logger.error(errorMessage, error.stack);
+    this.logger.error(errorMessage, err.stack);
   }
 
   /**

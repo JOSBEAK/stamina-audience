@@ -138,7 +138,7 @@ export class UploadsService {
    * @param fileKey - Key/path of the file
    * @returns Promise resolving to file metadata
    */
-  async getFileMetadata(fileKey: string): Promise<Record<string, any>> {
+  async getFileMetadata(fileKey: string): Promise<Record<string, unknown>> {
     try {
       return await this.storageService.getFileMetadata(fileKey);
     } catch (error) {

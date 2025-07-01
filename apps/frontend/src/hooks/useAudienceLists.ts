@@ -37,7 +37,7 @@ export const useAudienceListContacts = (
 ) => {
   return useQuery({
     queryKey: ['audienceLists', audienceListId, 'contacts', params],
-    queryFn: () => getAudienceListContacts(audienceListId!, params),
+    queryFn: () => getAudienceListContacts(audienceListId || '', params),
     enabled: options.enabled && !!audienceListId,
   });
 };

@@ -6,8 +6,6 @@ import {
   Param,
   Query,
   ParseUUIDPipe,
-  ParseIntPipe,
-  DefaultValuePipe,
   HttpCode,
   HttpStatus,
   Delete,

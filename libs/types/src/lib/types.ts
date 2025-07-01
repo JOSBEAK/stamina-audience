@@ -13,9 +13,18 @@ export enum Industry {
   OTHER = 'Other',
 }
 
-// These types are not defined, so we will use a generic 'any' type for now.
-export const RelatedFromSchema = z.any();
-const CRMLeadCustomAttributeSchema = z.any();
+// Properly typed schemas
+export const RelatedFromSchema = z.object({
+  type: z.literal('LEAD'),
+  value: z.union([z.string(), z.number(), z.record(z.unknown())]),
+});
+
+const CRMLeadCustomAttributeSchema = z.object({
+  id: z.string(),
+  type: z.string(),
+  name: z.string(),
+  value: z.union([z.string(), z.number(), z.boolean(), z.null()]),
+});
 
 export const ContactSchema = z.object({
   id: z.string().uuid(),
@@ -62,7 +71,7 @@ export const ContactSchema = z.object({
   websiteUrl: z.string().nullable().optional(),
   tags: z.array(z.string().uuid()).nullable().optional(),
   attributes: z.array(CRMLeadCustomAttributeSchema).nullable().optional(),
-  linkedInMeta: z.record(z.any()).nullable().optional(),
+  linkedInMeta: z.record(z.unknown()).nullable().optional(),
   search: z.string().nullable().optional(),
 
   createdAt: z.date(),

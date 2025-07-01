@@ -1,9 +1,9 @@
-import { ModuleMetadata } from '@nestjs/common';
 import {
   StorageProvider,
   SupportedFileType,
   FileAccessLevel,
 } from '../types/uploads.types';
+import { ModuleAsyncOptions } from '@stamina-project/common';
 
 /**
  * Core configuration interface for uploads module
@@ -71,8 +71,4 @@ export interface GCPConfig extends UploadsConfig {
 /**
  * Options for configuring the uploads module asynchronously
  */
-export interface UploadsModuleAsyncOptions
-  extends Pick<ModuleMetadata, 'imports'> {
-  useFactory: (...args: any[]) => Promise<UploadsConfig> | UploadsConfig;
-  inject?: any[];
-}
+export type UploadsModuleAsyncOptions = ModuleAsyncOptions<UploadsConfig>;

@@ -2,17 +2,7 @@
 
 import type React from "react"
 import type { AudienceList } from "@stamina-project/types"
-import { TableCell } from "@/components/ui/table"
-import { Skeleton } from "./ui/skeleton"
 import { format } from "date-fns"
-import { Info } from "lucide-react"
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "./ui/tooltip"
-import { cn } from "@/lib/utils"
 import { DataTable, ColumnDef } from "./ui/data-table"
 
 interface AudienceListsTableProps {
@@ -29,132 +19,6 @@ interface AudienceListsTableProps {
   sortDirection: "asc" | "desc" | null
 }
 
-const columns: ColumnDef<AudienceList>[] = [
-  {
-    id: "name",
-    header: () => (
-      <>
-        NAME <Info className="ml-1 w-3 h-3 text-gray-400" />
-      </>
-    ),
-    cell: (audienceList) => (
-      <div className="font-medium text-blue-600 truncate hover:text-blue-800">
-        {audienceList.name}
-      </div>
-    ),
-    enableSorting: true,
-  },
-  {
-    id: "memberCount",
-    header: () => <>LIST SIZE</>,
-    cell: (audienceList) => (
-      <span className="text-gray-900">{audienceList.memberCount}</span>
-    ),
-    enableSorting: true,
-  },
-  {
-    id: "type",
-    header: () => (
-      <>
-        TYPE <Info className="ml-1 w-3 h-3 text-gray-400" />
-      </>
-    ),
-    cell: (audienceList) => (
-      <div className="flex justify-center items-center">
-        <div
-          className={`w-2 h-2 rounded-full mr-2 ${
-            audienceList.type === "static" ? "bg-gray-400" : "bg-green-500"
-          }`}
-        ></div>
-        <span className="text-sm text-gray-600">
-          {audienceList.type === "static" ? "Static" : "Active"}
-        </span>
-      </div>
-    ),
-    enableSorting: true,
-  },
-  {
-    id: "object",
-    header: () => (
-      <div className="flex justify-center items-center">
-        OBJECT <Info className="ml-1 w-3 h-3 text-gray-400" />
-      </div>
-    ),
-    cell: () => <span className="text-gray-900">Contact</span>,
-  },
-  {
-    id: "updatedAt",
-    header: () => (
-      <>
-        LAST UPDATED (GMT+5:30) <Info className="ml-1 w-3 h-3 text-gray-400" />
-      </>
-    ),
-    cell: (audienceList) => (
-      <div className="text-sm">
-        <div className="font-medium text-gray-900">
-          {format(new Date(audienceList.updatedAt), "MMM d, yyyy h:mm a").toUpperCase()}
-        </div>
-        <div className="mt-1 text-xs text-gray-500">by {audienceList.creator || "Unknown"}</div>
-      </div>
-    ),
-    enableSorting: true,
-  },
-  {
-    id: "creator",
-    header: () => (
-      <div className="flex items-center">
-        CREATOR <Info className="ml-1 w-3 h-3 text-gray-400" />
-      </div>
-    ),
-    cell: (audienceList) => (
-      <div
-        className={cn(
-          "text-gray-900 truncate",
-          audienceList.creator ? "text-primary" : "text-muted-foreground"
-        )}
-      >
-        {audienceList.creator || "-"}
-      </div>
-    ),
-    enableSorting: true,
-  },
-  {
-    id: "folder",
-    header: () => (
-      <div className="flex items-center">
-        FOLDER <Info className="ml-1 w-3 h-3 text-gray-400" />
-      </div>
-    ),
-    cell: (audienceList) => (
-      <span className="text-gray-400">{audienceList.folder || "-"}</span>
-    ),
-    enableSorting: true,
-  },
-  {
-    id: "usedInCount",
-    header: () => (
-      <div className="flex justify-end items-center">
-        USED IN (COUNT)
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Info className="ml-1 w-3 h-3 text-gray-400" />
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Number of broadcasts using this audience list.</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-      </div>
-    ),
-    cell: (audienceList) => (
-      <span className="font-medium text-primary">
-        {audienceList.usedInCount || 0}
-      </span>
-    ),
-    enableSorting: true,
-  },
-]
 
 export const AudienceListsTable: React.FC<AudienceListsTableProps> = ({
   isLoading,
@@ -263,20 +127,26 @@ export const AudienceListsTable: React.FC<AudienceListsTableProps> = ({
     {
       id: "creator",
       header: () => <>CREATOR</>,
-      cell: (audienceList) => <>{audienceList.isSystem ? "-" : audienceList.creator || "-"}</>,
+      cell: (audienceList) => {
+        return audienceList.isSystem ? "-" : audienceList.creator || "-";
+      },
       enableSorting: false,
       headerClassName: "w-32",
     },
     {
       id: "folder",
       header: () => <>FOLDER</>,
-      cell: (audienceList) => <>{audienceList.folder || "-"}</>,
+      cell: (audienceList) => {
+        return audienceList.folder || "-";
+      },
       headerClassName: "w-24",
     },
     {
       id: "usedInCount",
       header: () => <>USED IN (COUNT)</>,
-      cell: (audienceList) => <>{audienceList.usedInCount || "0"}</>,
+      cell: (audienceList) => {
+        return audienceList.usedInCount || "0";
+      },
       headerClassName: "w-24 text-center",
       cellClassName: "text-center",
     },

@@ -34,7 +34,7 @@ export class AudienceList {
   type: AudienceListType;
 
   @Column({ name: 'rules_json', type: 'jsonb', nullable: true })
-  rulesJson: Record<string, any>;
+  rulesJson: Record<string, unknown>;
 
   @Column({ name: 'created_by', type: 'uuid', nullable: true })
   createdBy: string;

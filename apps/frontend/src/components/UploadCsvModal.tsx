@@ -3,10 +3,11 @@ import { X, FileUp } from 'lucide-react';
 import Papa from 'papaparse';
 import { Button, buttonVariants } from './ui/button';
 import { cn } from '@/lib/utils';
+import { CsvRowData } from '@stamina-project/types';
 
 interface UploadCsvModalProps {
   onClose: () => void;
-  onDataParsed: (data: any[], headers: string[], file: File) => void;
+  onDataParsed: (data: CsvRowData[], headers: string[], file: File) => void;
 }
 
 const UploadCsvModal: React.FC<UploadCsvModalProps> = ({
@@ -20,7 +21,8 @@ const UploadCsvModal: React.FC<UploadCsvModalProps> = ({
       header: true,
       skipEmptyLines: true,
       complete: (results) => {
-        onDataParsed(results.data, results.meta.fields || [], file);
+        const csvData = results.data as CsvRowData[];
+        onDataParsed(csvData, results.meta.fields || [], file);
       },
     });
   };
@@ -50,15 +52,15 @@ const UploadCsvModal: React.FC<UploadCsvModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center">
-      <div className="bg-white rounded-lg p-8 max-w-lg w-full">
+    <div className="flex fixed inset-0 justify-center items-center bg-black bg-opacity-50">
+      <div className="p-8 w-full max-w-lg bg-white rounded-lg">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-semibold">Add Upload .CSV</h2>
           <Button variant="ghost" size="icon" onClick={onClose}>
             <X size={24} />
           </Button>
         </div>
-        <div className="text-center mb-4">
+        <div className="mb-4 text-center">
           <p>
             Download our sample .csv file.{' '}
             <a
@@ -76,7 +78,7 @@ const UploadCsvModal: React.FC<UploadCsvModalProps> = ({
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
           className={`border-2 border-dashed rounded-lg p-12 text-center ${
-            dragging ? 'border-blue-500 bg-blue-50' : 'border-gray-300'
+            dragging ? 'bg-blue-50 border-blue-500' : 'border-gray-300'
           }`}
         >
           <FileUp size={48} className="mx-auto text-gray-400" />
@@ -85,7 +87,7 @@ const UploadCsvModal: React.FC<UploadCsvModalProps> = ({
               htmlFor="csv-upload"
               className={cn(
                 buttonVariants({ variant: 'link' }),
-                'cursor-pointer px-0 underline',
+                'px-0 underline cursor-pointer',
               )}
             >
               Click to upload
@@ -99,9 +101,9 @@ const UploadCsvModal: React.FC<UploadCsvModalProps> = ({
             className="hidden"
             onChange={handleFileChange}
           />
-          <p className="text-xs text-gray-400 mt-1">.csv file</p>
+          <p className="mt-1 text-xs text-gray-400">.csv file</p>
         </div>
-        <div className="flex justify-end gap-4 mt-8">
+        <div className="flex gap-4 justify-end mt-8">
           <Button variant="outline" onClick={onClose}>
             Cancel
           </Button>

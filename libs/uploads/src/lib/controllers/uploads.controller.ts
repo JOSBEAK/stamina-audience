@@ -128,7 +128,7 @@ export class UploadsController {
   @ApiResponse({ status: 500, description: 'Internal server error' })
   async getFileMetadata(
     @Param('fileKey') fileKey: string
-  ): Promise<Record<string, any>> {
+  ): Promise<Record<string, unknown>> {
     return this.uploadsService.getFileMetadata(decodeURIComponent(fileKey));
   }
 

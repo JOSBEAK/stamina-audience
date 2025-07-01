@@ -13,22 +13,26 @@ import {
 } from 'class-validator';
 import { Industry } from '@stamina-project/types';
 
-// These types are not defined, so we will use a generic 'any' type for now.
+// Properly typed related from types
+export type RelatedFromValue = string | number | Record<string, unknown>;
+
 export type RelatedFromType = {
   LEAD: 'lead';
-  value: any;
+  value: RelatedFromValue;
 };
 
 export class RelatedFrom {
-  value: string;
+  value: RelatedFromValue;
   type: RelatedFromType;
 }
+
+export type CRMLeadCustomAttributeValue = string | number | boolean | null;
 
 export type CRMLeadCustomAttribute = {
   id: string;
   type: string;
   name: string;
-  value: any;
+  value: CRMLeadCustomAttributeValue;
 };
 
 export class CreateContactDto {
@@ -291,7 +295,7 @@ export class CreateContactDto {
   @ApiProperty({ description: 'Metadata from LinkedIn', required: false })
   @IsObject()
   @IsOptional()
-  linkedInMeta?: Record<string, any>;
+  linkedInMeta?: Record<string, unknown>;
 }
 
 export class UpdateContactDto extends CreateContactDto {}

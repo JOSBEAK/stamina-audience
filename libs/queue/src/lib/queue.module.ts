@@ -73,7 +73,7 @@ export class QueueModule {
         ConfigModule,
         SqsModule.registerAsync({
           imports: config.imports,
-          useFactory: async (...args: any[]) => {
+          useFactory: async (...args: unknown[]) => {
             const queueConfig = await config.useFactory(...args);
             return {
               consumers: queueConfig.consumers.map((consumer) => ({
@@ -107,7 +107,8 @@ export class QueueModule {
   static forRoot(): DynamicModule {
     return this.registerAsync({
       imports: [ConfigModule],
-      useFactory: (configService: ConfigService): QueueModuleConfig => {
+      useFactory: (...args: unknown[]): QueueModuleConfig => {
+        const configService = args[0] as ConfigService;
         // Default configuration that can be overridden by environment variables
         const consumers = [];
         const producers = [];
