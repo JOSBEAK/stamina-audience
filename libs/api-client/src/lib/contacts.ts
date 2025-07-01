@@ -1,5 +1,5 @@
-import { Contact, ContactsResponse, GetContactsParams } from './types';
 import { apiClient } from './client';
+import type { Contact, GetContactsParams, ContactsResponse } from './types';
 
 // --- Contact API Functions ---
 

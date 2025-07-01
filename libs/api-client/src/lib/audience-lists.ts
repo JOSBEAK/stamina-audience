@@ -1,4 +1,4 @@
-import { AudienceList, CreateAudienceListDto, Contact } from './types';
+import type { AudienceList, CreateAudienceListDto, Contact } from './types';
 import { apiClient } from './client';
 
 // --- Audience List API Functions ---

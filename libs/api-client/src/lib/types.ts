@@ -1,4 +1,4 @@
-// Local type definitions for API client that match @stamina-project/types exactly
+// Local types for API client - minimal definitions to avoid build issues
 export interface GetContactsParams {
   search?: string;
   role?: string;

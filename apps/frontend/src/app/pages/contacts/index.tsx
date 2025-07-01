@@ -8,7 +8,8 @@ import {
   ChevronDown,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { Contact, AudienceList } from '@stamina-project/types';
+import {  AudienceList } from '@stamina-project/types';
+import { Contact } from '@stamina-project/api-client';
 import {
   useContacts,
   useDeleteContacts,
@@ -45,8 +46,7 @@ import { AddToAudienceListModal } from '@/components/AddToAudienceListModal';
 import { AddParticipantsModal } from '@/components/AddParticipantsModal';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { usePrefetch } from '@stamina-project/frontend-hooks';
-
-type CsvRow = Record<string, string>;
+import { CsvRowData } from '@stamina-project/types';
 
 // type UseContactsParams = {
 //   search: string;
@@ -64,7 +64,7 @@ export function ContactsPage() {
   const navigate = useNavigate();
   const routeLocation = useLocation();
   const [view, setView] = useState('list');
-  const [csvData, setCsvData] = useState<CsvRow[]>([]);
+  const [csvData, setCsvData] = useState<CsvRowData[]>([]);
   const [csvHeaders, setCsvHeaders] = useState<string[]>([]);
   const [csvFile, setCsvFile] = useState<File | null>(null);
   const [selectedContacts, setSelectedContacts] = useState<string[]>([]);
@@ -74,7 +74,7 @@ export function ContactsPage() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isRemoveFromAudienceListDialogOpen, setIsRemoveFromAudienceListDialogOpen] =
     useState(false);
-  const [editingContact, setEditingContact] = useState<Contact | null>(null);
+  const [editingContact, setEditingContact] = useState<Partial<Contact> | null>(null);
   const [showFilters, setShowFilters] = useState(false);
   const [sort, setSort] = useState('createdAt:desc');
   const [role, setRole] = useState('');
@@ -329,7 +329,7 @@ export function ContactsPage() {
     }
   };
 
-  const handleDataParsed = (data: CsvRow[], headers: string[], file: File) => {
+  const handleDataParsed = (data: CsvRowData[], headers: string[], file: File) => {
     setCsvData(data);
     setCsvHeaders(headers);
     setCsvFile(file);
@@ -347,7 +347,7 @@ export function ContactsPage() {
 
     const uploadPromise = async () => {
       try {
-        const { presignedUrl, publicUrl, fileKey } = await getPresignedUrl(
+        const { presignedUrl, fileKey } = await getPresignedUrl(
           csvFile.name,
           csvFile.type
         );
@@ -413,7 +413,7 @@ export function ContactsPage() {
     if (editingContact) {
       toast.promise(
         updateContactMutation.mutateAsync({
-          id: editingContact.id,
+          id: editingContact.id ?? '',
           contactData,
         }),
         {
@@ -537,7 +537,7 @@ export function ContactsPage() {
         <AddManualForm
           onClose={handleCloseForm}
           onContactSubmit={handleFormSubmit}
-          initialData={editingContact}
+          initialData={editingContact as Contact}
         />
       );
     }

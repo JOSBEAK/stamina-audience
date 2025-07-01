@@ -1,4 +1,19 @@
 import * as z from 'zod';
+export interface GetContactsParams {
+  search?: string;
+  role?: string;
+  company?: string;
+  location?: string;
+  industry?: string;
+  sort?: string;
+  page?: number;
+  limit?: number;
+}
+
+export interface ContactsResponse {
+  data: Contact[];
+  total: number;
+}
 
 export enum Industry {
   TECHNOLOGY = 'Technology',
@@ -13,6 +28,24 @@ export enum Industry {
   OTHER = 'Other',
 }
 
+export interface AudienceList {
+  id: string;
+  name: string;
+  type: 'static' | 'dynamic';
+  createdAt: string;
+  updatedAt: string;
+  deletedAt?: string | null;
+  memberCount?: number;
+  usedInCount?: number;
+  creator?: string | null;
+  folder?: string | null;
+  object?: 'Contact';
+  members?: { id: string }[];
+}
+
+export interface CreateAudienceListDto {
+  name: string;
+}
 // Properly typed schemas
 export const RelatedFromSchema = z.object({
   type: z.literal('LEAD'),

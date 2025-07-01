@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react"
-import type { Contact, CsvRowData, FieldMappingConfig } from "@stamina-project/types"
+import type { AudienceList, Contact, CsvRowData, FieldMappingConfig } from "@stamina-project/types"
 import { X, ArrowRight, Check, AlertCircle, RotateCcw, Eye, EyeOff } from "lucide-react"
 import { Button } from "./ui/button"
 import { Checkbox } from "./ui/checkbox"
@@ -401,7 +401,7 @@ export default function FieldMapping({ onClose, onConfirm, csvData, csvHeaders, 
                       {isLoadingAudienceLists ? (
                         <SelectItem value="loading" disabled>Loading lists...</SelectItem>
                       ) : (
-                        audienceLists?.map((list) => (
+                        audienceLists?.map((list:AudienceList) => (
                           <SelectItem key={list.id} value={list.id}>
                             {list.name}
                           </SelectItem>
