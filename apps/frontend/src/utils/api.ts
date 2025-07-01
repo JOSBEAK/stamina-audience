@@ -5,7 +5,8 @@ import {
   AudienceList,
 } from '@stamina-project/types';
 
-const API_URL = import.meta.env.VITE_API_URL;
+// Use environment variable or fallback to /api (which will be proxied to localhost:3000)
+const API_URL = import.meta.env.VITE_API_URL || '/api';
 
 const apiClient = axios.create({
   baseURL: API_URL,

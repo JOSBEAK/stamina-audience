@@ -2,13 +2,14 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
+import { UploadsModule } from '@stamina-project/uploads';
+
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
 import { ContactsModule } from '../modules/contacts/contacts.module';
 // import { BroadcastsModule } from '../modules/broadcasts/broadcasts.module';
 // import { WebhookModule } from '../modules/webhook/webhook.module';
-import { UploadsModule } from '../modules/uploads/uploads.module';
 import { AudienceListsModule } from '../modules/audience-lists/audience-lists.module';
 
 import { Contact } from '../entities/contact.entity';
@@ -49,8 +50,38 @@ import { AudienceListMember } from '../entities/audience-list-member.entity';
       ],
     }),
     */
+    // Generic uploads library with Cloudflare R2 configuration
+    UploadsModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: (configService: ConfigService) => ({
+        provider: 'cloudflare-r2',
+        region: 'auto',
+        bucket: configService.get<string>('CLOUDFLARE_BUCKET_NAME'),
+        credentials: {
+          accessKeyId: configService.get<string>('CLOUDFLARE_R2_ACCESS_KEY_ID'),
+          secretAccessKey: configService.get<string>(
+            'CLOUDFLARE_R2_SECRET_ACCESS_KEY'
+          ),
+        },
+        endpoint: `https://${configService.get<string>(
+          'CLOUDFLARE_ACCOUNT_ID'
+        )}.r2.cloudflarestorage.com`,
+        publicUrlBase: configService.get<string>('CLOUDFLARE_R2_ASSETS_URL'),
+        defaultExpiresIn: 3600,
+        defaultAccessLevel: 'private',
+        maxFileSize: 50 * 1024 * 1024, // 50MB
+        allowedFileTypes: [
+          'text/csv',
+          'application/json',
+          'image/jpeg',
+          'image/png',
+          'application/pdf',
+        ],
+      }),
+      inject: [ConfigService],
+    }),
+
     ContactsModule,
-    UploadsModule,
     AudienceListsModule,
   ],
   controllers: [AppController],

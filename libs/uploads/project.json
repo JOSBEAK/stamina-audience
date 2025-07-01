@@ -1,0 +1,19 @@
+{
+  "name": "uploads",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/uploads/src",
+  "projectType": "library",
+  "tags": [],
+  "targets": {
+    "build": {
+      "executor": "@nx/js:tsc",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/libs/uploads",
+        "main": "libs/uploads/src/index.ts",
+        "tsConfig": "libs/uploads/tsconfig.lib.json",
+        "assets": ["libs/uploads/*.md"]
+      }
+    }
+  }
+} 

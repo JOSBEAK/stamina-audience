@@ -1,17 +1,40 @@
 import { forwardRef, Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+
+import { QueueModule } from '@stamina-project/queue';
+
+import { Contact } from '../../entities/contact.entity';
+import { AudienceListsModule } from '../audience-lists/audience-lists.module';
 import { ContactsController } from './contacts.controller';
 import { ContactsService } from './contacts.service';
-import { Contact } from '../../entities/contact.entity';
-import { UploadsModule } from '../uploads/uploads.module';
+import { CsvWorker } from './csv-worker';
 
+/**
+ * Contacts module handles contact management functionality
+ *
+ * Provides:
+ * - CRUD operations for contacts
+ * - CSV file processing for bulk contact imports
+ * - Integration with audience lists
+ * - Queue-based processing for large uploads
+ *
+ * @module ContactsModule
+ */
 @Module({
   imports: [
+    // External modules
+    ConfigModule,
+    QueueModule.forRoot(),
+
+    // TypeORM entities
     TypeOrmModule.forFeature([Contact]),
-    forwardRef(() => UploadsModule),
+
+    // Internal modules
+    AudienceListsModule,
   ],
   controllers: [ContactsController],
-  providers: [ContactsService],
+  providers: [ContactsService, CsvWorker],
   exports: [ContactsService],
 })
 export class ContactsModule {}
