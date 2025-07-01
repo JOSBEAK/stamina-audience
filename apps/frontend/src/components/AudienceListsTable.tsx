@@ -264,7 +264,7 @@ export const AudienceListsTable: React.FC<AudienceListsTableProps> = ({
       id: "creator",
       header: () => <>CREATOR</>,
       cell: (audienceList) => <>{audienceList.isSystem ? "-" : audienceList.creator || "-"}</>,
-      enableSorting: true,
+      enableSorting: false,
       headerClassName: "w-32",
     },
     {

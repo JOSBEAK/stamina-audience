@@ -10,7 +10,8 @@ import { SqsService } from '@ssut/nestjs-sqs';
 import { ConfigService } from '@nestjs/config';
 import { Contact } from '../../entities/contact.entity';
 import { CreateContactDto, UpdateContactDto } from './dto/contact.dto';
-import { ListParamsDto } from '../common/dto/list-params.dto';
+import { ContactListParamsDto } from './dto/contact-list-params.dto';
+import { PaginatedResponseDto, QueryUtils } from '@stamina-project/common';
 
 // interface FindAllParams {
 //   role?: string;
@@ -82,77 +83,39 @@ export class ContactsService {
     return this.contactRepository.save(contacts);
   }
 
-  async findAll(params: ListParamsDto) {
-    const {
-      page = 1,
-      role,
-      company,
-      location,
-      industry,
-      search,
-      sort,
-      limit = 10,
-    } = params;
+  async findAll(
+    params: ContactListParamsDto
+  ): Promise<PaginatedResponseDto<Contact>> {
+    const { role, company, location, industry, search } = params;
     const query = this.contactRepository.createQueryBuilder('contact');
 
-    if (role) {
-      query.andWhere('contact.role = :role', { role });
-    }
-    if (company) {
-      query.andWhere('contact.company = :company', {
-        company,
-      });
-    }
-    if (location) {
-      query.andWhere('contact.location = :location', {
-        location,
-      });
-    }
-    if (industry) {
-      query.andWhere('contact.industry = :industry', { industry });
-    }
+    // Apply business-specific filters
+    this.applyBusinessFilters(query, { role, company, location, industry });
 
+    // Apply advanced search (full-text search + fallback)
     if (search) {
-      const ftsQuery = search
-        .trim()
-        .split(' ')
-        .filter((term) => term)
-        .map((term) => `${term}:*`)
-        .join(' & ');
-
-      const partialMatchQuery = `%${search}%`;
-
-      query.andWhere(
-        `(
-          contact.search_vector @@ to_tsquery('english', :ftsQuery)
-          OR contact.name ILIKE :partialMatchQuery
-          OR contact.email ILIKE :partialMatchQuery
-          OR contact.company ILIKE :partialMatchQuery
-        )`,
-        { ftsQuery, partialMatchQuery }
-      );
+      this.applyAdvancedSearch(query, search);
     }
+
+    // Apply common pagination features (sorting + pagination)
+    QueryUtils.applySorting(query, params, 'contact', [
+      'name',
+      'email',
+      'company',
+      'role',
+      'location',
+      'industry',
+      'createdAt',
+      'updatedAt',
+    ]);
+
+    QueryUtils.applyPagination(query, params);
+
     // A real app would get brandId from auth and add:
     // query.andWhere('contact.brandId = :brandId', { brandId });
 
-    this.applyFilters(query, { role, company, location, industry });
-
-    if (sort) {
-      const [order, direction] = sort.split(':');
-      query.orderBy(
-        `contact.${order}`,
-        direction.toUpperCase() as 'ASC' | 'DESC'
-      );
-    } else {
-      query.orderBy('contact.createdAt', 'DESC');
-    }
-
-    const [data, total] = await query
-      .skip((page - 1) * limit)
-      .take(limit)
-      .getManyAndCount();
-
-    return { data, total, page, limit };
+    const [data, total] = await query.getManyAndCount();
+    return PaginatedResponseDto.create(data, total, params);
   }
 
   async findOne(id: string): Promise<Contact> {
@@ -274,7 +237,13 @@ export class ContactsService {
     }
   }
 
-  private applyFilters(
+  /**
+   * Apply business-specific filters for contacts
+   *
+   * @param query - The TypeORM query builder
+   * @param filters - Business-specific filter parameters
+   */
+  private applyBusinessFilters(
     query: SelectQueryBuilder<Contact>,
     filters: {
       role?: string;
@@ -301,5 +270,35 @@ export class ContactsService {
         industry: filters.industry,
       });
     }
+  }
+
+  /**
+   * Apply advanced search with full-text search and fallback
+   *
+   * @param query - The TypeORM query builder
+   * @param search - Search term
+   */
+  private applyAdvancedSearch(
+    query: SelectQueryBuilder<Contact>,
+    search: string
+  ) {
+    const ftsQuery = search
+      .trim()
+      .split(' ')
+      .filter((term) => term)
+      .map((term) => `${term}:*`)
+      .join(' & ');
+
+    const partialMatchQuery = `%${search}%`;
+
+    query.andWhere(
+      `(
+        contact.search_vector @@ to_tsquery('english', :ftsQuery)
+        OR contact.name ILIKE :partialMatchQuery
+        OR contact.email ILIKE :partialMatchQuery
+        OR contact.company ILIKE :partialMatchQuery
+      )`,
+      { ftsQuery, partialMatchQuery }
+    );
   }
 }

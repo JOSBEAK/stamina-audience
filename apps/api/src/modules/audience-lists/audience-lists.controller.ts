@@ -11,13 +11,15 @@ import {
   HttpCode,
   HttpStatus,
   Delete,
+  ValidationPipe,
 } from '@nestjs/common';
 import { AudienceListsService } from './audience-lists.service';
 import {
   CreateAudienceListDto,
   AddContactsToAudienceListDto,
 } from './dto/audience-list.dto';
-import { ListParamsDto } from '../common/dto/list-params.dto';
+import { AudienceListParamsDto } from './dto/audience-list-params.dto';
+import { ContactListParamsDto } from '../contacts/dto/contact-list-params.dto';
 
 @Controller('audience-lists')
 export class AudienceListsController {
@@ -30,12 +32,18 @@ export class AudienceListsController {
   }
 
   @Get()
-  findAll(@Query() params: ListParamsDto) {
+  findAll(
+    @Query(new ValidationPipe({ transform: true, whitelist: true }))
+    params: AudienceListParamsDto
+  ) {
     return this.audienceListsService.findAll(params);
   }
 
   @Get('deleted')
-  findDeleted(@Query() params: ListParamsDto) {
+  findDeleted(
+    @Query(new ValidationPipe({ transform: true, whitelist: true }))
+    params: AudienceListParamsDto
+  ) {
     return this.audienceListsService.findDeleted(params);
   }
 
@@ -52,7 +60,8 @@ export class AudienceListsController {
   @Get(':id/contacts')
   findAudienceListContacts(
     @Param('id', ParseUUIDPipe) id: string,
-    @Query() listParams: ListParamsDto
+    @Query(new ValidationPipe({ transform: true, whitelist: true }))
+    listParams: ContactListParamsDto
   ) {
     return this.audienceListsService.findAudienceListContacts(id, listParams);
   }

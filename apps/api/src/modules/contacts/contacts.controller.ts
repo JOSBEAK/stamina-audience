@@ -24,7 +24,7 @@ import {
 import { ContactsService } from './contacts.service';
 import { CreateContactDto, UpdateContactDto } from './dto/contact.dto';
 import { Contact } from '../../entities/contact.entity';
-import { ListParamsDto } from '../common/dto/list-params.dto';
+import { ContactListParamsDto } from './dto/contact-list-params.dto';
 import { IsString, IsNotEmpty, IsObject, IsOptional } from 'class-validator';
 
 class ProcessCsvDto {
@@ -118,7 +118,10 @@ export class ContactsController {
   @ApiQuery({ name: 'company', required: false })
   @ApiQuery({ name: 'location', required: false })
   @ApiQuery({ name: 'industry', required: false })
-  findAll(@Query() params: ListParamsDto) {
+  findAll(
+    @Query(new ValidationPipe({ transform: true, whitelist: true }))
+    params: ContactListParamsDto
+  ) {
     return this.contactsService.findAll(params);
   }
 

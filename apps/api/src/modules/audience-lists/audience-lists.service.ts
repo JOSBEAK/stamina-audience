@@ -11,7 +11,9 @@ import {
 } from './dto/audience-list.dto';
 import { AudienceListMember } from '../../entities/audience-list-member.entity';
 import { Contact } from '../../entities/contact.entity';
-import { ListParamsDto } from '../common/dto/list-params.dto';
+import { AudienceListParamsDto } from './dto/audience-list-params.dto';
+import { ContactListParamsDto } from '../contacts/dto/contact-list-params.dto';
+import { PaginatedResponseDto, QueryUtils } from '@stamina-project/common';
 import { ConfigService } from '@nestjs/config';
 import { IsUUID } from 'class-validator';
 
@@ -45,7 +47,9 @@ export class AudienceListsService {
     return this.audienceListsRepository.save(audienceList);
   }
 
-  async findAll(params: ListParamsDto) {
+  async findAll(
+    params: AudienceListParamsDto
+  ): Promise<PaginatedResponseDto<AudienceList>> {
     const { page = 1, limit = 10, search, sort, folder } = params;
     const query = this.audienceListsRepository
       .createQueryBuilder('audienceList')
@@ -127,7 +131,7 @@ export class AudienceListsService {
       };
     });
 
-    return { data, total, page, limit };
+    return PaginatedResponseDto.create(data, total, params);
   }
 
   async findOne(id: string) {
@@ -179,7 +183,9 @@ export class AudienceListsService {
     return folders.map((f) => f.folder);
   }
 
-  async findDeleted(params: ListParamsDto) {
+  async findDeleted(
+    params: AudienceListParamsDto
+  ): Promise<PaginatedResponseDto<AudienceList>> {
     const { page = 1, limit = 10 } = params;
     const [data, total] = await this.audienceListsRepository.findAndCount({
       where: {
@@ -193,7 +199,7 @@ export class AudienceListsService {
         deletedAt: 'DESC',
       },
     });
-    return { data, total, page, limit };
+    return PaginatedResponseDto.create(data, total, params);
   }
 
   async softDelete(id: string): Promise<void> {
@@ -212,8 +218,8 @@ export class AudienceListsService {
 
   async findAudienceListContacts(
     audienceListId: string,
-    params: ListParamsDto
-  ) {
+    params: ContactListParamsDto
+  ): Promise<PaginatedResponseDto<Contact>> {
     const {
       page = 1,
       limit = 10,
@@ -282,6 +288,6 @@ export class AudienceListsService {
       .skip((page - 1) * limit)
       .getManyAndCount();
 
-    return { data, total, page, limit };
+    return PaginatedResponseDto.create(data, total, params);
   }
 }
