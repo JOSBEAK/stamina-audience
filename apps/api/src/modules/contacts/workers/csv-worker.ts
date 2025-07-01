@@ -14,11 +14,11 @@ import {
 } from '@stamina-project/queue';
 import { StorageService } from '@stamina-project/uploads';
 
-import { Contact } from '../../entities/contact.entity';
-import { CreateContactDto } from './dto/contact.dto';
-import { AudienceListsService } from '../audience-lists/audience-lists.service';
-import { ContactsService } from './contacts.service';
-import { CsvProcessRequestDto } from './dto/csv-process-request.dto';
+import { Contact } from '../../../entities/contact.entity';
+import { CreateContactDto } from '../dto/contact.dto';
+import { AudienceListsService } from '../../audience-lists/audience-lists.service';
+import { ContactsService } from '../contacts.service';
+import { CsvProcessRequestDto } from '../dto/csv-process-request.dto';
 
 /**
  * Queue worker responsible for processing CSV file uploads

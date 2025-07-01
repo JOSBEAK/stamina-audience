@@ -14,12 +14,12 @@ import {
   useDeleteContacts,
   useUpdateContact,
   useCreateContact,
-} from '@/hooks/useContacts';
+} from '@stamina-project/frontend-hooks';
 import {
   useAudienceListContacts,
   useAddContactsToAudienceList,
   useRemoveContactsFromAudienceList,
-} from '@/hooks/useAudienceLists';
+} from '@stamina-project/frontend-hooks';
 import { AudienceTable } from '@/components/AudienceTable';
 import AddAudienceModal from '@/components/AddAudienceModal';
 import { AddManualForm } from '@/components/AddManualForm';
@@ -27,7 +27,7 @@ import UploadCsvModal from '@/components/UploadCsvModal';
 import FieldMapping from '@/components/FieldMapping';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { useDebounce } from '@/hooks/useDebounce';
+import { useDebounce } from '@stamina-project/frontend-utils';
 import { searchAttributes, getPresignedUrl, processCsv } from '@stamina-project/api-client';
 import {
   AlertDialog,
@@ -44,7 +44,7 @@ import { AudienceLists } from '@/components/AudienceLists';
 import { AddToAudienceListModal } from '@/components/AddToAudienceListModal';
 import { AddParticipantsModal } from '@/components/AddParticipantsModal';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { usePrefetch } from '@/hooks/usePrefetch';
+import { usePrefetch } from '@stamina-project/frontend-hooks';
 
 type CsvRow = Record<string, string>;
 

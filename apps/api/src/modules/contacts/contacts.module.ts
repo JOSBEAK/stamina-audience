@@ -1,5 +1,5 @@
 import { forwardRef, Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { QueueModule } from '@stamina-project/queue';
@@ -8,7 +8,7 @@ import { Contact } from '../../entities/contact.entity';
 import { AudienceListsModule } from '../audience-lists/audience-lists.module';
 import { ContactsController } from './contacts.controller';
 import { ContactsService } from './contacts.service';
-import { CsvWorker } from './csv-worker';
+import { CsvWorker } from './workers/csv-worker';
 
 /**
  * Contacts module handles contact management functionality
@@ -34,7 +34,11 @@ import { CsvWorker } from './csv-worker';
     AudienceListsModule,
   ],
   controllers: [ContactsController],
-  providers: [ContactsService, CsvWorker],
+  providers: [
+    ContactsService,
+    // Only register CsvWorker if SQS is configured
+    ...(process.env.SQS_CSV_PROCESSING_QUEUE_URL ? [CsvWorker] : []),
+  ],
   exports: [ContactsService],
 })
 export class ContactsModule {}

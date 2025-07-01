@@ -15,7 +15,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { useAudienceLists } from '@/hooks/useAudienceLists';
+import { useAudienceLists } from '@stamina-project/frontend-hooks';
 import { AudienceList } from '@stamina-project/types';
 
 interface AddToAudienceListModalProps {

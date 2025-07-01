@@ -1,21 +1,5 @@
-import { Contact } from './types';
+import { Contact, ContactsResponse, GetContactsParams } from './types';
 import { apiClient } from './client';
-
-export interface GetContactsParams {
-  search?: string;
-  role?: string;
-  company?: string;
-  location?: string;
-  industry?: string;
-  sort?: string;
-  page?: number;
-  limit?: number;
-}
-
-export interface ContactsResponse {
-  data: Contact[];
-  total: number;
-}
 
 // --- Contact API Functions ---
 

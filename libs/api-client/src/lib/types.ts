@@ -1,5 +1,19 @@
 // Local type definitions for API client that match @stamina-project/types exactly
+export interface GetContactsParams {
+  search?: string;
+  role?: string;
+  company?: string;
+  location?: string;
+  industry?: string;
+  sort?: string;
+  page?: number;
+  limit?: number;
+}
 
+export interface ContactsResponse {
+  data: Contact[];
+  total: number;
+}
 export enum Industry {
   TECHNOLOGY = 'Technology',
   HEALTHCARE = 'Healthcare',

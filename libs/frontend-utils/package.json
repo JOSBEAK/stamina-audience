@@ -1,0 +1,12 @@
+{
+  "name": "@stamina-project/frontend-utils",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "main": "./index.js",
+  "types": "./index.d.ts",
+  "dependencies": {},
+  "peerDependencies": {
+    "react": "^18.0.0"
+  }
+}

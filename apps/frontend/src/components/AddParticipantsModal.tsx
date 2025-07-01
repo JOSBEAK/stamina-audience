@@ -10,8 +10,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
-import { useContacts } from '@/hooks/useContacts';
-import { useDebounce } from '@/hooks/useDebounce';
+import { useContacts } from '@stamina-project/frontend-hooks';
+import { useDebounce } from '@stamina-project/frontend-utils';
 import { Contact } from '@stamina-project/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -92,8 +92,8 @@ export function AddParticipantsModal({
               {isLoading
                 ? Array.from({ length: 5 }).map((_, i) => (
                     <div key={i} className="flex items-center p-4 space-x-4">
-                      <Skeleton className="h-5 w-5 rounded" />
-                      <Skeleton className="h-10 w-10 rounded-full" />
+                      <Skeleton className="w-5 h-5 rounded" />
+                      <Skeleton className="w-10 h-10 rounded-full" />
                       <div className="space-y-2">
                         <Skeleton className="h-4 w-[150px]" />
                         <Skeleton className="h-4 w-[200px]" />
@@ -114,7 +114,7 @@ export function AddParticipantsModal({
                       <img
                         src={contact.avatar}
                         alt={contact.name}
-                        className="h-10 w-10 rounded-full"
+                        className="w-10 h-10 rounded-full"
                       />
                       <div>
                         <div className="font-medium">{contact.name}</div>
@@ -133,7 +133,7 @@ export function AddParticipantsModal({
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               disabled={currentPage === 1}
             >
-              <ChevronLeft className="mr-2 h-4 w-4" />
+              <ChevronLeft className="mr-2 w-4 h-4" />
               Previous
             </Button>
             <div className="text-sm text-muted-foreground">
@@ -146,7 +146,7 @@ export function AddParticipantsModal({
               disabled={currentPage === totalPages}
             >
               Next
-              <ChevronRight className="ml-2 h-4 w-4" />
+              <ChevronRight className="ml-2 w-4 h-4" />
             </Button>
           </div>
         </div>

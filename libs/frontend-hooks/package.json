@@ -1,0 +1,16 @@
+{
+  "name": "@stamina-project/frontend-hooks",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "main": "./index.js",
+  "types": "./index.d.ts",
+  "dependencies": {
+    "@stamina-project/api-client": "*",
+    "@stamina-project/types": "*"
+  },
+  "peerDependencies": {
+    "@tanstack/react-query": "^5.0.0",
+    "react": "^18.0.0"
+  }
+}

@@ -55,13 +55,13 @@ export async function uploadToR2({
     region: 'auto',
     endpoint: process.env.NX_R2_ENDPOINT, // Ensure you have these in your .env
     credentials: {
-      accessKeyId: process.env.NX_R2_ACCESS_KEY_ID!,
-      secretAccessKey: process.env.NX_R2_SECRET_ACCESS_KEY!,
+      accessKeyId: process.env.NX_R2_ACCESS_KEY_ID,
+      secretAccessKey: process.env.NX_R2_SECRET_ACCESS_KEY,
     },
   });
 
   const uploadParams = {
-    Bucket: process.env.NX_R2_BUCKET!,
+    Bucket: process.env.NX_R2_BUCKET,
     Key: `${Date.now()}-${file.name}`,
     Body: file,
     ContentType: file.type,

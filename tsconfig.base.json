@@ -15,9 +15,10 @@
     "skipDefaultLibCheck": true,
     "baseUrl": ".",
     "paths": {
-      "@./libs": ["libs/src/index.ts"],
       "@stamina-project/api-client": ["libs/api-client/src/index.ts"],
       "@stamina-project/common": ["libs/common/src/index.ts"],
+      "@stamina-project/frontend-hooks": ["libs/frontend-hooks/src/index.ts"],
+      "@stamina-project/frontend-utils": ["libs/frontend-utils/src/index.ts"],
       "@stamina-project/queue": ["libs/queue/src/index.ts"],
       "@stamina-project/types": ["libs/types/src/index.ts"],
       "@stamina-project/uploads": ["libs/uploads/src/index.ts"],

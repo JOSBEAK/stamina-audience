@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { useAudienceLists, useCreateAudienceList } from '@/hooks/useAudienceLists'
+import { useAudienceLists, useCreateAudienceList } from '@stamina-project/frontend-hooks'
 import { Input } from './ui/input'
 import { toast } from 'sonner'
 

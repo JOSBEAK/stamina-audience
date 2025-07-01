@@ -5,15 +5,15 @@ import {
   useSoftDeleteAudienceList,
   useDeletedAudienceLists,
   useRestoreAudienceList,
-} from '@/hooks/useAudienceLists';
+} from '@stamina-project/frontend-hooks';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { AudienceList } from '@stamina-project/types';
 import {
-  useDebounce } from '@/hooks/useDebounce';
-import { useContacts } from '@/hooks/useContacts';
+  useDebounce } from '@stamina-project/frontend-utils';
+import { useContacts } from '@stamina-project/frontend-hooks';
 import {
   AlertDialog,
   AlertDialogAction,
