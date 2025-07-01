@@ -14,10 +14,21 @@ export function usePrefetch() {
       );
 
       const data = allSettled.reduce((acc, result, index) => {
+        const attribute = prefetchAttributes[index];
         if (result.status === 'fulfilled') {
-          acc[prefetchAttributes[index]] = result.value.slice(0, 5);
+          // Ensure the result is an array and contains only strings
+          const value = Array.isArray(result.value)
+            ? result.value
+                .filter((item) => typeof item === 'string')
+                .slice(0, 5)
+            : [];
+          acc[attribute] = value;
         } else {
-          acc[prefetchAttributes[index]] = [];
+          console.warn(
+            `Failed to fetch ${attribute} attributes:`,
+            result.reason
+          );
+          acc[attribute] = [];
         }
         return acc;
       }, {} as Record<(typeof prefetchAttributes)[number], string[]>);

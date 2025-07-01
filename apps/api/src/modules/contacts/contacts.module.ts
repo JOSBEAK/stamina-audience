@@ -3,10 +3,13 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { ContactsController } from './contacts.controller';
 import { ContactsService } from './contacts.service';
 import { Contact } from '../../entities/contact.entity';
-import { QueueModule } from '../queue/queue.module';
+import { UploadsModule } from '../uploads/uploads.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Contact]), forwardRef(() => QueueModule)],
+  imports: [
+    TypeOrmModule.forFeature([Contact]),
+    forwardRef(() => UploadsModule),
+  ],
   controllers: [ContactsController],
   providers: [ContactsService],
   exports: [ContactsService],

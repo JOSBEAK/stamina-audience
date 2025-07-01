@@ -187,18 +187,26 @@ export function ContactsPage() {
   
   useEffect(() => {
     if (prefetchedData) {
-      setRoleOptions(
-        prefetchedData.role.map((r) => ({ label: r, value: r }))
-      );
-      setCompanyOptions(
-        prefetchedData.company.map((c) => ({ label: c, value: c }))
-      );
-      setLocationOptions(
-        prefetchedData.location.map((l) => ({ label: l, value: l }))
-      );
-      setIndustryOptions(
-        prefetchedData.industry.map((i) => ({ label: i, value: i }))
-      );
+      if (Array.isArray(prefetchedData.role)) {
+        setRoleOptions(
+          prefetchedData.role.map((r) => ({ label: r, value: r }))
+        );
+      }
+      if (Array.isArray(prefetchedData.company)) {
+        setCompanyOptions(
+          prefetchedData.company.map((c) => ({ label: c, value: c }))
+        );
+      }
+      if (Array.isArray(prefetchedData.location)) {
+        setLocationOptions(
+          prefetchedData.location.map((l) => ({ label: l, value: l }))
+        );
+      }
+      if (Array.isArray(prefetchedData.industry)) {
+        setIndustryOptions(
+          prefetchedData.industry.map((i) => ({ label: i, value: i }))
+        );
+      }
     }
   }, [prefetchedData]);
 

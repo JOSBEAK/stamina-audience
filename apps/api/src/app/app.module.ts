@@ -9,9 +9,7 @@ import { ContactsModule } from '../modules/contacts/contacts.module';
 // import { BroadcastsModule } from '../modules/broadcasts/broadcasts.module';
 // import { WebhookModule } from '../modules/webhook/webhook.module';
 import { UploadsModule } from '../modules/uploads/uploads.module';
-// import { QueueModule } from '../modules/queue/queue.module'; // Temporarily disabled
 import { AudienceListsModule } from '../modules/audience-lists/audience-lists.module';
-// import { QueueModule } from '../modules/queue/queue.module'; // Temporarily disabled
 
 import { Contact } from '../entities/contact.entity';
 import { AudienceList } from '../entities/audience-list.entity';
@@ -53,7 +51,6 @@ import { AudienceListMember } from '../entities/audience-list-member.entity';
     */
     ContactsModule,
     UploadsModule,
-    // QueueModule, // Temporarily disabled
     AudienceListsModule,
   ],
   controllers: [AppController],
