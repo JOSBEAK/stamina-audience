@@ -39,23 +39,36 @@ const columns: ColumnDef<Contact>[] = [
   {
     id: 'name',
     header: () => <>NAME</>,
-    headerClassName: 'w-2/5',
+    width: '320px', // Fixed width for name column
+    headerClassName: 'text-left',
+    cellClassName: 'text-left',
     cell: (contact) => (
-      <div className="flex items-center">
+      <div className="flex items-center min-w-0">
         <div className="flex-shrink-0 w-10 h-10">
           <img
-            className="w-10 h-10 rounded-full"
+            className="w-10 h-10 rounded-full object-cover"
             src={contact.avatar || '/placeholder.svg'}
             alt=""
           />
         </div>
-        <div className="ml-4">
-          <div className="h-6 text-base font-medium leading-6 text-gray-900">
+        <div className="ml-3 min-w-0 flex-1">
+          <div className="text-sm font-medium text-gray-900 truncate">
             {contact.name}
           </div>
-          <div className="h-6 text-base leading-6 text-gray-500">
+          <div className="text-sm text-gray-500 truncate">
             {contact.email}
           </div>
+        </div>
+      </div>
+    ),
+    skeletonCell: () => (
+      <div className="flex items-center min-w-0">
+        <div className="flex-shrink-0 w-10 h-10">
+          <Skeleton className="w-10 h-10 rounded-full" />
+        </div>
+        <div className="ml-3 min-w-0 flex-1">
+          <Skeleton className="h-4 w-32 mb-1" />
+          <Skeleton className="h-4 w-40" />
         </div>
       </div>
     ),
@@ -64,29 +77,73 @@ const columns: ColumnDef<Contact>[] = [
   {
     id: 'role',
     header: () => <>ROLE</>,
-    headerClassName: 'w-1/5',
-    cell: (contact) => <>{contact.role}</>,
+    width: '180px', // Fixed width for role column
+    headerClassName: 'text-left',
+    cellClassName: 'text-left',
+    cell: (contact) => (
+      <div className="text-sm text-gray-900 truncate" title={contact.role}>
+        {contact.role}
+      </div>
+    ),
+    skeletonCell: () => (
+      <div className="text-sm truncate">
+        <Skeleton className="h-4 w-24" />
+      </div>
+    ),
     enableSorting: true,
   },
   {
     id: 'company',
     header: () => <>COMPANY</>,
-    headerClassName: 'w-1/5',
-    cell: (contact) => <>{contact.company}</>,
+    width: '200px', // Fixed width for company column
+    headerClassName: 'text-left',
+    cellClassName: 'text-left',
+    cell: (contact) => (
+      <div className="text-sm text-gray-900 truncate" title={contact.company || undefined}>
+        {contact.company}
+      </div>
+    ),
+    skeletonCell: () => (
+      <div className="text-sm truncate">
+        <Skeleton className="h-4 w-28" />
+      </div>
+    ),
     enableSorting: true,
   },
   {
     id: 'industry',
     header: () => <>INDUSTRY</>,
-    headerClassName: 'w-1/5',
-    cell: (contact) => <>{contact.industry}</>,
+    width: '180px', // Fixed width for industry column
+    headerClassName: 'text-left',
+    cellClassName: 'text-left',
+    cell: (contact) => (
+      <div className="text-sm text-gray-900 truncate" title={contact.industry?.toString()}>
+        {contact.industry}
+      </div>
+    ),
+    skeletonCell: () => (
+      <div className="text-sm truncate">
+        <Skeleton className="h-4 w-20" />
+      </div>
+    ),
     enableSorting: true,
   },
   {
     id: 'location',
     header: () => <>LOCATION</>,
-    headerClassName: 'w-1/5',
-    cell: (contact) => <>{contact.location}</>,
+    width: '180px', // Fixed width for location column
+    headerClassName: 'text-left',
+    cellClassName: 'text-left',
+    cell: (contact) => (
+      <div className="text-sm text-gray-900 truncate" title={contact.location}>
+        {contact.location}
+      </div>
+    ),
+    skeletonCell: () => (
+      <div className="text-sm truncate">
+        <Skeleton className="h-4 w-24" />
+      </div>
+    ),
     enableSorting: true,
   },
 ]
@@ -140,10 +197,12 @@ export function AudienceTable({
   return (
     <>
       {numSelected > 0 && (
-        <div className="px-4 py-3 border-b">
+        <div className="px-4 py-3 border-b bg-blue-50/50 min-h-[60px] flex items-center">
           <div className="flex gap-4 justify-between items-center w-full">
-            <span className="text-sm font-medium">{numSelected} selected</span>
-            <div className="flex gap-2 items-center">
+            <span className="text-sm font-medium text-blue-900 flex-shrink-0">
+              {numSelected} selected
+            </span>
+            <div className="flex gap-2 items-center flex-shrink-0">
               <Button variant="outline" size="sm" onClick={onAddToAudienceList}>
                 Add to List
               </Button>

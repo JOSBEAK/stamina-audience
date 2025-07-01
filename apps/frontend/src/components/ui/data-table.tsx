@@ -16,9 +16,11 @@ export interface ColumnDef<TData> {
   id: string;
   header: () => React.ReactNode;
   cell: (data: TData) => React.ReactNode;
+  skeletonCell?: () => React.ReactNode;
   enableSorting?: boolean;
   headerClassName?: string;
   cellClassName?: string;
+  width?: string;
 }
 
 interface DataTableProps<TData> {
@@ -53,21 +55,21 @@ export function DataTable<TData>({
 }: DataTableProps<TData>) {
   const renderSortArrow = (field: string) => {
     if (sortField !== field || !sortDirection) {
-      return <ChevronsUpDown className="ml-2 h-4 w-4" />;
+      return <ChevronsUpDown className="ml-2 h-4 w-4 flex-shrink-0" />;
     }
     if (sortDirection === 'asc') {
-      return <ArrowUp className="ml-2 h-4 w-4" />;
+      return <ArrowUp className="ml-2 h-4 w-4 flex-shrink-0" />;
     }
-    return <ArrowDown className="ml-2 h-4 w-4" />;
+    return <ArrowDown className="ml-2 h-4 w-4 flex-shrink-0" />;
   };
 
   return (
     <div className="border rounded-lg overflow-hidden bg-white">
-      <Table>
+      <Table className="table-fixed w-full">
         <TableHeader>
-          <TableRow className="border-b bg-gray-50/50">
+          <TableRow className="border-b bg-gray-50/50 h-12">
             {onSelectionChange && (
-              <TableHead className="w-12 pl-4">
+              <TableHead className="w-12 pl-4 pr-2">
                 <Checkbox
                   checked={isAllSelected}
                   onCheckedChange={onSelectAll}
@@ -75,18 +77,22 @@ export function DataTable<TData>({
               </TableHead>
             )}
             {columns.map((column) => (
-              <TableHead key={column.id} className={column.headerClassName}>
+              <TableHead 
+                key={column.id} 
+                className={`${column.headerClassName} px-3 font-medium text-gray-700`}
+                style={column.width ? { width: column.width } : undefined}
+              >
                 {column.enableSorting && onSort ? (
                   <Button
                     variant="ghost"
                     onClick={() => onSort(column.id)}
-                    className="h-auto p-0 font-medium text-gray-700 hover:text-gray-900 hover:bg-transparent"
+                    className="h-auto p-0 font-medium text-gray-700 hover:text-gray-900 hover:bg-transparent flex items-center justify-start w-full text-left"
                   >
-                    {column.header()}
+                    <span className="truncate">{column.header()}</span>
                     {renderSortArrow(column.id)}
                   </Button>
                 ) : (
-                  column.header()
+                  <div className="truncate">{column.header()}</div>
                 )}
               </TableHead>
             ))}
@@ -95,15 +101,25 @@ export function DataTable<TData>({
         <TableBody>
           {isLoading
             ? Array.from({ length: 10 }).map((_, index) => (
-                <TableRow key={index}>
+                <TableRow key={index} className="h-16 border-b">
                   {onSelectionChange && (
-                    <TableCell className="pl-4">
+                    <TableCell className="pl-4 pr-2">
                       <Skeleton className="h-4 w-4 rounded" />
                     </TableCell>
                   )}
                   {columns.map((column) => (
-                    <TableCell key={column.id} className={column.cellClassName}>
-                      <Skeleton className="h-4 w-full" />
+                    <TableCell 
+                      key={column.id} 
+                      className={`${column.cellClassName} px-3`}
+                      style={column.width ? { width: column.width } : undefined}
+                    >
+                      {column.skeletonCell ? (
+                        column.skeletonCell()
+                      ) : (
+                        <div className="truncate">
+                          <Skeleton className="h-4 w-24" />
+                        </div>
+                      )}
                     </TableCell>
                   ))}
                 </TableRow>
@@ -112,11 +128,11 @@ export function DataTable<TData>({
                 <TableRow
                   key={getRowId(row)}
                   onClick={() => onRowClick?.(row)}
-                  className="cursor-pointer"
+                  className="cursor-pointer h-16 border-b hover:bg-gray-50/50"
                 >
                   {onSelectionChange && (
                     <TableCell
-                      className="pl-4"
+                      className="pl-4 pr-2"
                       onClick={(e) => e.stopPropagation()}
                     >
                       <Checkbox
@@ -126,8 +142,14 @@ export function DataTable<TData>({
                     </TableCell>
                   )}
                   {columns.map((column) => (
-                    <TableCell key={column.id} className={column.cellClassName}>
-                      {column.cell(row)}
+                    <TableCell 
+                      key={column.id} 
+                      className={`${column.cellClassName} px-3 truncate max-w-0`}
+                      style={column.width ? { width: column.width } : undefined}
+                    >
+                      <div className="truncate">
+                        {column.cell(row)}
+                      </div>
                     </TableCell>
                   ))}
                 </TableRow>
