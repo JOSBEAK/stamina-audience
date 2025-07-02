@@ -12,7 +12,7 @@ import { Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { AudienceList } from '@stamina-project/types';
 import {
-  useDebounce } from '@stamina-project/frontend-utils';
+  useDebounce } from '@stamina-project/frontend-hooks';
 import { useContacts } from '@stamina-project/frontend-hooks';
 import {
   AlertDialog,

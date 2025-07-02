@@ -28,7 +28,7 @@ import UploadCsvModal from '@/components/UploadCsvModal';
 import FieldMapping from '@/components/FieldMapping';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { useDebounce } from '@stamina-project/frontend-utils';
+import { useDebounce } from '@stamina-project/frontend-hooks';
 import { searchAttributes, getPresignedUrl, processCsv } from '@stamina-project/api-client';
 import {
   AlertDialog,

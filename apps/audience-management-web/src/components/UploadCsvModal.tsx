@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { X, FileUp } from 'lucide-react';
 import Papa from 'papaparse';
 import { Button, buttonVariants } from './ui/button';
-import { cn } from '@/lib/utils';
+import { cn } from '@stamina-project/frontend-utils';
 import { CsvRowData } from '@stamina-project/types';
 
 interface UploadCsvModalProps {

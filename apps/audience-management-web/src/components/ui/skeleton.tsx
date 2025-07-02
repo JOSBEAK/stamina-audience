@@ -1,4 +1,4 @@
-import { cn } from "@/lib/utils"
+import { cn } from "@stamina-project/frontend-utils"
 
 function Skeleton({
   className,

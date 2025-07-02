@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useContacts } from '@stamina-project/frontend-hooks';
-import { useDebounce } from '@stamina-project/frontend-utils';
+import { useDebounce } from '@stamina-project/frontend-hooks';
 import { Contact } from '@stamina-project/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ScrollArea } from '@/components/ui/scroll-area';

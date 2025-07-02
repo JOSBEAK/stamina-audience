@@ -1,7 +1,7 @@
 import React from 'react';
 import { Button, ButtonProps } from './button';
 import { X } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn } from '@stamina-project/frontend-utils';
 
 export function ClearButton({ className, ...props }: ButtonProps) {
   return (
