@@ -698,7 +698,7 @@ export function ContactsPage() {
             />
           )}
 
-          <div className="overflow-hidden rounded-lg border">
+          <div className="overflow-hidden rounded-lg">
             <AudienceTable
               contacts={contacts}
               loading={isLoading}

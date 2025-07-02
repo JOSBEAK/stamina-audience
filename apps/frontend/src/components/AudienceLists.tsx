@@ -207,7 +207,7 @@ export function AudienceLists({
         <TabsContent value="all">
           <div className="flex justify-between items-center my-4">
             {selectedAudienceLists.length > 0 ? (
-              <div className="flex gap-4 items-center">
+              <div className="flex gap-4 justify-between items-center w-full h-10">
                 <span className="text-sm font-medium">
                   {selectedAudienceLists.length} selected
                 </span>

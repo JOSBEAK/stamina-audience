@@ -1,20 +1,9 @@
 import type React from "react"
 import type { Contact } from "@stamina-project/types"
-import { Trash2, Edit, ArrowUp, ArrowDown } from "lucide-react"
-import { Checkbox } from "./ui/checkbox"
+import { Trash2, Edit } from "lucide-react"
 import { Skeleton } from "./ui/skeleton"
 import { Button } from "./ui/button"
 import { EmptyState } from "./EmptyState"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
-import { cn } from "@/lib/utils"
-import { ChevronsUpDown } from "lucide-react"
 import { DataTable, ColumnDef } from './ui/data-table'
 
 interface AudienceTableProps {
@@ -46,12 +35,12 @@ const columns: ColumnDef<Contact>[] = [
       <div className="flex items-center min-w-0">
         <div className="flex-shrink-0 w-10 h-10">
           <img
-            className="w-10 h-10 rounded-full object-cover"
+            className="object-cover w-10 h-10 rounded-full"
             src={contact.avatar || '/placeholder.svg'}
             alt=""
           />
         </div>
-        <div className="ml-3 min-w-0 flex-1">
+        <div className="flex-1 ml-3 min-w-0">
           <div className="text-sm font-medium text-gray-900 truncate">
             {contact.name}
           </div>
@@ -66,9 +55,9 @@ const columns: ColumnDef<Contact>[] = [
         <div className="flex-shrink-0 w-10 h-10">
           <Skeleton className="w-10 h-10 rounded-full" />
         </div>
-        <div className="ml-3 min-w-0 flex-1">
-          <Skeleton className="h-4 w-32 mb-1" />
-          <Skeleton className="h-4 w-40" />
+        <div className="flex-1 ml-3 min-w-0">
+          <Skeleton className="mb-1 w-32 h-4" />
+          <Skeleton className="w-40 h-4" />
         </div>
       </div>
     ),
@@ -87,7 +76,7 @@ const columns: ColumnDef<Contact>[] = [
     ),
     skeletonCell: () => (
       <div className="text-sm truncate">
-        <Skeleton className="h-4 w-24" />
+        <Skeleton className="w-24 h-4" />
       </div>
     ),
     enableSorting: true,
@@ -105,7 +94,7 @@ const columns: ColumnDef<Contact>[] = [
     ),
     skeletonCell: () => (
       <div className="text-sm truncate">
-        <Skeleton className="h-4 w-28" />
+        <Skeleton className="w-28 h-4" />
       </div>
     ),
     enableSorting: true,
@@ -123,7 +112,7 @@ const columns: ColumnDef<Contact>[] = [
     ),
     skeletonCell: () => (
       <div className="text-sm truncate">
-        <Skeleton className="h-4 w-20" />
+        <Skeleton className="w-20 h-4" />
       </div>
     ),
     enableSorting: true,
@@ -141,7 +130,7 @@ const columns: ColumnDef<Contact>[] = [
     ),
     skeletonCell: () => (
       <div className="text-sm truncate">
-        <Skeleton className="h-4 w-24" />
+        <Skeleton className="w-24 h-4" />
       </div>
     ),
     enableSorting: true,
@@ -165,18 +154,7 @@ export function AudienceTable({
   sortField,
   sortDirection,
 }: AudienceTableProps) {
-  const isAllSelected = contacts.length > 0 && selectedContacts.length === contacts.length
   const numSelected = selectedContacts.length
-
-  const renderSortArrow = (field: string) => {
-    if (sortField !== field || !sortDirection) {
-      return <ChevronsUpDown className="ml-2 w-4 h-4" />
-    }
-    if (sortDirection === 'asc') {
-      return <ArrowUp className="ml-2 w-4 h-4" />
-    }
-    return <ArrowDown className="ml-2 w-4 h-4" />
-  }
 
   if (!loading && contacts.length === 0) {
     return areFiltersActive ? (
@@ -197,12 +175,12 @@ export function AudienceTable({
   return (
     <>
       {numSelected > 0 && (
-        <div className="px-4 py-3 border-b bg-blue-50/50 min-h-[60px] flex items-center">
+        <div className="flex items-center py-3 min-h-10">
           <div className="flex gap-4 justify-between items-center w-full">
-            <span className="text-sm font-medium text-blue-900 flex-shrink-0">
+            <span className="flex-shrink-0 text-sm font-medium text-blue-900">
               {numSelected} selected
             </span>
-            <div className="flex gap-2 items-center flex-shrink-0">
+            <div className="flex flex-shrink-0 gap-2 items-center">
               <Button variant="outline" size="sm" onClick={onAddToAudienceList}>
                 Add to List
               </Button>
