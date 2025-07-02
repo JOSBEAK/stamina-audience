@@ -20,7 +20,7 @@ import { AudienceListMember } from '../entities/audience-list-member.entity';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: 'apps/api/.env',
+      envFilePath: 'apps/audience-management-service/.env',
     }),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],

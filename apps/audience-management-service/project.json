@@ -1,7 +1,7 @@
 {
-  "name": "api",
+  "name": "audience-management-service",
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
-  "sourceRoot": "apps/api/src",
+  "sourceRoot": "apps/audience-management-service/src",
   "projectType": "application",
   "targets": {
     "build": {
@@ -22,15 +22,15 @@
       "defaultConfiguration": "development",
       "dependsOn": ["build"],
       "options": {
-        "buildTarget": "api:build",
+        "buildTarget": "audience-management-service:build",
         "runBuildTargetDependencies": false
       },
       "configurations": {
         "development": {
-          "buildTarget": "api:build:development"
+          "buildTarget": "audience-management-service:build:development"
         },
         "production": {
-          "buildTarget": "api:build:production"
+          "buildTarget": "audience-management-service:build:production"
         }
       }
     }

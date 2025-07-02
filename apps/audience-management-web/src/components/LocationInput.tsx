@@ -62,7 +62,7 @@ const LocationInput: React.FC<LocationInputProps> = ({ control, error }) => {
 
   if (!apiKey) {
     const errorMsg =
-      'Google Maps API Key is missing. Please create `apps/frontend/.env` and add `NX_PUBLIC_GOOGLE_MAPS_API_KEY=YOUR_KEY_HERE`. Then, restart the server.';
+              'Google Maps API Key is missing. Please create `apps/audience-management-web/.env` and add `NX_PUBLIC_GOOGLE_MAPS_API_KEY=YOUR_KEY_HERE`. Then, restart the server.';
     console.error(errorMsg);
     return <p className="text-destructive">{errorMsg}</p>;
   }
