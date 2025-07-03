@@ -1,0 +1,290 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# �� Stamina Frontend Detailed Guidelines
+
+This document provides specific guidelines and best practices for frontend development in the LeadSend monorepo, expanding on the general standards in `FRONTEND_STANDARDS.md`.
+
+## �� Naming Conventions
+
+- **Folders:** Use `kebab-case`
+  _e.g._: `task-tab`, `crm-lead-csv-upload-container`
+
+- **Component Files:** Use `PascalCase`
+  _e.g._: `ImportExportDropdown.tsx`
+
+- **Type & Interface Names:** Use `PascalCase`, prefix props with `Props`
+  _e.g._: `BulkUpdateEmailAccountDto`, `SearchBarProps`
+
+- **Functions & Variables:** Use `camelCase`
+  _e.g._: `handleTagSelection`, `filteredOptions`
+
+## ��️ Type Safety & Data Access
+
+- Always import shared types from `@leadsend/storage` (Swagger-aligned)
+- Avoid `any`; use concrete types or `unknown` with checks
+- Use optional chaining when accessing nested objects:
+  _e.g._ `item?.lead?.email`
+- Use `Partial<T>` and `Pick<T>` appropriately for mutations
+- Validate all user-uploaded or external data before processing
+
+## �� Component & UI Patterns
+
+- Use design system components (`Button`, `Input`, `DropdownMenu`, etc.)
+- Reuse feature components where possible; avoid duplication
+- Keep components focused — extract logic into hooks (`useXYZ`) if complex
+- Props should always be typed explicitly
+- Avoid large `.map()` render logic inline — extract subcomponents
+- Always use sensible keys like id and try not to use index as keys
+- Keep JSX readable by breaking long expressions into smaller chunks or variables
+
+**Good Example:**
+```tsx
+// Extract complex mapping logic to a separate component
+function LeadList({ leads }) {
+  return (
+    <div className="space-y-4">
+      {leads.map((lead) => (
+        <LeadCard key={lead.id} lead={lead} />
+      ))}
+    </div>
+  );
+}
+
+// Clean, focused component
+function LeadCard({ lead }) {
+  const { isTagging } = useTagging();
+  
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>{lead.name}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <p>{lead.email}</p>
+        <TagList tags={lead.tags} />
+      </CardContent>
+    </Card>
+  );
+}
+```
+
+## �� State Management & API
+
+- Use `React Query` (`useQuery`, `useMutation`) for all server interactions
+- Invalidate or refetch related queries after successful mutations:
+
+  ```ts
+  queryClient.invalidateQueries({ queryKey: ["crm-leads"] });
+  ```
+
+- Use `useMemo`/`useCallback` to avoid unnecessary renders
+- Never mutate state directly; always use state setters or immutable updates
+- Understand the difference between `isLoading` and `isFetching`:
+
+  - `isLoading` is true only on the **initial load** of the query
+  - `isFetching` is true **every time** the query runs (includes background refetches)
+  - Prefer `isFetching` for showing loaders **after the initial fetch**
+
+## �� Code Cleanliness & Maintainability
+
+- Use early returns to reduce nesting
+- Consolidate dynamic classes with logic using `cn()` helper
+- Break complex conditions into well-named helper variables
+- Remove all `console.log` before commit (unless inside a debug flag)
+
+**Good Example:**
+```tsx
+// Use early returns to reduce nesting
+function ProfileSection({ user }) {
+  if (!user) return <Skeleton className="h-32" />;
+  if (user.error) return <ErrorState message={user.error} />;
+  
+  // Combine class names with cn() utility
+  const avatarClassNames = cn(
+    "h-12 w-12 rounded-full", 
+    user.isPremium && "border-2 border-gold"
+  );
+  
+  // Break complex conditions into well-named variables
+  const showVerifiedBadge = user.isVerified && !user.isRestricted;
+  
+  return (
+    <div className="flex items-center">
+      <Avatar className={avatarClassNames} src={user.avatarUrl} />
+      <div className="ml-3">
+        <h3 className="font-medium">{user.name}</h3>
+        {showVerifiedBadge && <VerifiedBadge />}
+      </div>
+    </div>
+  );
+}
+```
+
+## ✅ UX Patterns
+
+- Use `toast()` to notify users of major actions (variants: success, destructive and null(info))
+- Display inline field-level errors (e.g. under dropdowns)
+- Use loading states while queries/mutations are in progress
+- Avoid UI flicker — manage optimistic or suspense states properly
+
+## �� Project Structure & Imports
+
+- Hooks: `src/hooks/useXYZ.ts`
+- Components: `src/components/FeatureName/ComponentName.tsx`
+- Group imports: 3rd party → internal modules → styles
+
+```tsx
+// Group imports properly
+import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { toast } from 'sonner';
+
+import { Button } from '@/components/ui/button';
+import { useLeadData } from '@/hooks/useLeadData';
+import { formatDate } from '@/lib/utils';
+
+import './styles.css';
+```
+
+## �� API Hook Best Practices
+
+All API communication should be done through custom hooks using `@tanstack/react-query`.
+
+### useQuery Hook Guidelines
+
+```ts
+export const useGetResource = (
+  id: string,
+  enabled = true
+) => {
+  return useQuery<ResourceType>({
+    queryKey: ['resource', id],
+    queryFn: ({ signal }) => getResource(id, signal),
+    enabled,
+  });
+};
+```
+
+- Always use a clear and unique `queryKey` (e.g. ['campaigns', brandId])
+- Always return typed data
+- Use `enabled` for conditional fetching
+- Use `select` to transform response
+
+### useMutation Hook Guidelines
+
+```ts
+export function useUpdateResource(onSuccessCallback?: () => void) {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: (payload: UpdateDto) => updateResource(payload),
+    onSuccess: () => {
+      // Invalidate related queries
+      queryClient.invalidateQueries({ queryKey: ["resource"] });
+      onSuccessCallback?.();
+      toast({ title: "Resource updated successfully", variant: "success" });
+    },
+    onError: (error: any) => {
+      const errorMessage = error?.response?.data?.message || "Something went wrong.";
+      toast({ title: errorMessage, variant: "destructive" });
+    },
+  });
+}
+```
+
+- Always toast on error
+- Centralize all API logic in `api/`
+- Invalidate relevant queries on success
+- Use `Partial<T>` where appropriate
+- Prefer `APIPaginationResponse<T>` for paginated data
+
+## ��️ React Query API Hook Cheatsheet
+
+| **Hook Type** | **Best Practice**                                                            |
+| ------------- | ---------------------------------------------------------------------------- |
+| `useQuery`    | Typed return, unique `queryKey`, use `enabled`                               |
+| `useMutation` | Toast on error, wrap in `useXYZMutation`, invalidate/refetch related queries |
+| API Calls     | Centralize in `/api/*`, keep business logic out                              |
+| Errors        | Use fallback error message + `error.response.data.message` when available    |
+| Structure     | Use naming like `useGetX`, `useUpdateY`, `useDeleteZ` for clarity            |
+
+## �� Testing Guidelines
+
+- Use `Jest` + `React Testing Library` for unit/integration tests
+- Prefer test IDs over class selectors for querying DOM elements:
+  ```tsx
+  <button data-testid="submit-button">Submit</button>
+  
+  // In tests
+  const submitButton = screen.getByTestId('submit-button');
+  ```
+- Use `msw` (Mock Service Worker) for simulating APIs
+- Aim for coverage on reusable logic and critical flows (upload, tagging, lead mapping)
+
+**Example Test:**
+```tsx
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { LeadForm } from './LeadForm';
+
+// Setup a fresh QueryClient for each test
+const createQueryClient = () => new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: false,
+    },
+  },
+});
+
+describe('LeadForm', () => {
+  test('submits the form with valid data', async () => {
+    const onSubmitMock = jest.fn();
+    const queryClient = createQueryClient();
+    
+    render(
+      <QueryClientProvider client={queryClient}>
+        <LeadForm onSubmit={onSubmitMock} />
+      </QueryClientProvider>
+    );
+    
+    // Fill in form fields
+    await userEvent.type(screen.getByLabelText(/name/i), 'John Doe');
+    await userEvent.type(screen.getByLabelText(/email/i), 'john@example.com');
+    
+    // Submit form
+    await userEvent.click(screen.getByTestId('submit-lead-form'));
+    
+    // Verify submission
+    await waitFor(() => {
+      expect(onSubmitMock).toHaveBeenCalledWith({
+        name: 'John Doe',
+        email: 'john@example.com',
+      });
+    });
+  });
+});
+```
+
+## ��️ Icon & Image Guidelines
+
+- **Use Lucide Icons** for all interactive and UI icons:
+
+  ```tsx
+  import { ChevronDown } from "lucide-react";
+
+  <ChevronDown
+    size={20}
+    strokeWidth={2}
+    className="w-5 h-5 text-primary-customGray-600"
+  />;
+  ```
+
+- Avoid importing icons from multiple libraries. Stick to `lucide-react` for consistency.
+
+- **If Lucide lacks a required icon**, use SVGs exported directly from Figma or reputable icon libraries like Heroicons, Feather, or Tabler.
+  - Prefer inline SVGs or optimized React components
+  - Ensure fill/stroke is controlled via `currentColor` for theming

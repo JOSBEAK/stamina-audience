@@ -1,0 +1,37 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "outDir": "../../dist/out-tsc",
+    "types": [
+      "node",
+      "@nx/react/typings/cssmodule.d.ts",
+      "@nx/react/typings/image.d.ts",
+      "vite/client"
+    ],
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"],
+      "@stamina-project/api-client": ["../../libs/api-client/src/index.ts"],
+      "@stamina-project/frontend-hooks": [
+        "../../libs/frontend-hooks/src/index.ts"
+      ],
+      "@stamina-project/frontend-utils": [
+        "../../libs/frontend-utils/src/index.ts"
+      ],
+      "@stamina-project/types": ["../../libs/types/src/index.ts"],
+      "@stamina-project/utils": ["../../libs/utils/src/index.ts"]
+    }
+  },
+  "exclude": [
+    "src/**/*.spec.ts",
+    "src/**/*.test.ts",
+    "src/**/*.spec.tsx",
+    "src/**/*.test.tsx",
+    "src/**/*.spec.js",
+    "src/**/*.test.js",
+    "src/**/*.spec.jsx",
+    "src/**/*.test.jsx",
+    "jest.config.ts"
+  ],
+  "include": ["src/**/*.js", "src/**/*.jsx", "src/**/*.ts", "src/**/*.tsx"]
+}
