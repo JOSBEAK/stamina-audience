@@ -198,6 +198,13 @@ export class ContactsService {
   }
 
   async queueCsvProcessingJob(job: ProcessCsvJob): Promise<void> {
+    if (!this.sqsService) {
+      this.logger.error('SQS service is not available');
+      throw new InternalServerErrorException(
+        'Could not queue CSV processing job.'
+      );
+    }
+
     try {
       this.logger.log(
         `[DEBUG] queueCsvProcessingJob sending fileKey: ${job.fileKey}`

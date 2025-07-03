@@ -1,14 +1,6 @@
-import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  CreateDateColumn,
-  OneToMany,
-  UpdateDateColumn,
-  DeleteDateColumn,
-  Index,
-} from 'typeorm';
+import { Entity, Column, OneToMany, DeleteDateColumn, Index } from 'typeorm';
 import { AudienceListMember } from './audience-list-member.entity';
+import { BaseEntity } from './base.entity';
 
 export enum AudienceListType {
   STATIC = 'static',
@@ -16,14 +8,7 @@ export enum AudienceListType {
 }
 
 @Entity('audience_lists')
-export class AudienceList {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
-
-  @Index()
-  @Column()
-  locationId: string;
-
+export class AudienceList extends BaseEntity {
   @Column()
   name: string;
 
@@ -38,12 +23,6 @@ export class AudienceList {
 
   @Column({ name: 'created_by', type: 'uuid', nullable: true })
   createdBy: string;
-
-  @CreateDateColumn({ name: 'created_at' })
-  createdAt: Date;
-
-  @UpdateDateColumn({ name: 'updated_at' })
-  updatedAt: Date;
 
   @DeleteDateColumn({ name: 'deleted_at', type: 'timestamp', nullable: true })
   deletedAt?: Date;

@@ -33,6 +33,13 @@
           "buildTarget": "audience-management-service:build:production"
         }
       }
+    },
+    "test": {
+      "executor": "@nx/jest:jest",
+      "outputs": ["{workspaceRoot}/coverage/{projectRoot}"],
+      "options": {
+        "jestConfig": "apps/audience-management-service/jest.config.ts"
+      }
     }
   },
   "tags": []

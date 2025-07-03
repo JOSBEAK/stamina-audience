@@ -353,7 +353,31 @@ export default function FieldMapping({ onClose, onConfirm, csvData, csvHeaders, 
                           <tr key={index} className="border-b">
                             {Object.values(mapping).map((field) => (
                               <td key={field} className="p-2">
-                                {renderCellValue(row[field as keyof Contact])}
+                                {field === 'avatar' ? (
+                                  row[field as keyof Contact] ? (
+                                    <img 
+                                      src={String(row[field as keyof Contact])} 
+                                      alt="Avatar" 
+                                      className="object-cover w-8 h-8 rounded-full"
+                                      onError={(e) => {
+                                        const target = e.target as HTMLImageElement;
+                                        target.style.display = 'none';
+                                        target.nextElementSibling?.classList.remove('hidden');
+                                      }}
+                                    />
+                                  ) : (
+                                    <div className="flex justify-center items-center w-8 h-8 bg-gray-200 rounded-full">
+                                      <span className="text-xs text-gray-500">-</span>
+                                    </div>
+                                  )
+                                ) : (
+                                  renderCellValue(row[field as keyof Contact])
+                                )}
+                                {field === 'avatar' && row[field as keyof Contact] && (
+                                  <span className="hidden text-xs text-gray-500">
+                                    {renderCellValue(row[field as keyof Contact])}
+                                  </span>
+                                )}
                               </td>
                             ))}
                           </tr>

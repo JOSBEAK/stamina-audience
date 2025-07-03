@@ -1,25 +1,15 @@
-import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  CreateDateColumn,
-  ManyToOne,
-  JoinColumn,
-  Index,
-  UpdateDateColumn,
-} from 'typeorm';
+import { Entity, Column, ManyToOne, JoinColumn, Index } from 'typeorm';
 import { Contact } from './contact.entity';
 import { AudienceList } from './audience-list.entity';
+import { BaseEntity } from './base.entity';
 
 @Entity('audience_list_members')
 @Index(['contactId', 'audienceListId'], { unique: true })
-export class AudienceListMember {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
-
-  @Index()
-  @Column()
-  locationId: string;
+export class AudienceListMember extends BaseEntity {
+  // Provide domain-specific getter for better semantics
+  get addedAt(): Date {
+    return this.createdAt;
+  }
 
   @Index()
   @Column({ type: 'uuid', name: 'audience_list_id' })
@@ -28,12 +18,6 @@ export class AudienceListMember {
   @Index()
   @Column({ type: 'uuid', name: 'contact_id' })
   contactId: string;
-
-  @CreateDateColumn({ name: 'added_at' })
-  addedAt: Date;
-
-  @UpdateDateColumn({ name: 'updated_at' })
-  updatedAt: Date;
 
   @ManyToOne(() => Contact, (contact) => contact.audienceListMembers, {
     onDelete: 'CASCADE',

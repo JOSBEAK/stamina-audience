@@ -1,27 +1,13 @@
-import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  CreateDateColumn,
-  UpdateDateColumn,
-  Index,
-  OneToMany,
-} from 'typeorm';
+import { Entity, Column, Index, OneToMany } from 'typeorm';
 import { AudienceListMember } from './audience-list-member.entity';
 import {
   RelatedFrom,
   CRMLeadCustomAttribute,
 } from '../modules/contacts/dto/contact.dto';
+import { BaseEntity } from './base.entity';
 
 @Entity('contacts')
-export class Contact {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
-
-  @Index()
-  @Column()
-  locationId: string;
-
+export class Contact extends BaseEntity {
   // --- Fields that MUST be non-nullable, per your instruction ---
 
   @Column({ type: 'varchar', length: 255 })
@@ -212,12 +198,6 @@ export class Contact {
     name: 'linkedin_meta',
   })
   linkedInMeta: Record<string, unknown>;
-
-  @CreateDateColumn({ name: 'created_at' })
-  createdAt: Date;
-
-  @UpdateDateColumn({ name: 'updated_at' })
-  updatedAt: Date;
 
   @Column({
     type: 'tsvector',
