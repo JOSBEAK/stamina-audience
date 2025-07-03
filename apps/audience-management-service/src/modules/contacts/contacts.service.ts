@@ -145,6 +145,7 @@ export class ContactsService {
       throw new Error('Invalid attribute');
     }
 
+    // Use more efficient prefix matching for indexed fields
     const query = this.contactRepository
       .createQueryBuilder('contact')
       .select(`DISTINCT contact.${attribute}`, 'attribute')
@@ -152,6 +153,9 @@ export class ContactsService {
       .andWhere('contact.locationId = :locationId', {
         locationId: this.locationId,
       })
+      // Order by length for most relevant results first
+      .orderBy(`LENGTH(contact.${attribute})`, 'ASC')
+      .addOrderBy(`contact.${attribute}`, 'ASC')
       .limit(limit)
       .offset((page - 1) * limit);
 
@@ -278,6 +282,7 @@ export class ContactsService {
 
     const partialMatchQuery = `%${search}%`;
 
+    // Prioritize exact matches and full-text search results
     query.andWhere(
       `(
         contact.search_vector @@ to_tsquery('english', :ftsQuery)
@@ -287,5 +292,22 @@ export class ContactsService {
       )`,
       { ftsQuery, partialMatchQuery }
     );
+
+    // Add ranking for better search result ordering
+    query.addSelect(
+      `GREATEST(
+        CASE WHEN contact.search_vector @@ to_tsquery('english', :ftsQuery) 
+             THEN ts_rank(contact.search_vector, to_tsquery('english', :ftsQuery)) * 2
+             ELSE 0 
+        END,
+        CASE WHEN contact.name ILIKE :exactMatch THEN 1.5 ELSE 0 END,
+        CASE WHEN contact.email ILIKE :exactMatch THEN 1.3 ELSE 0 END,
+        CASE WHEN contact.company ILIKE :exactMatch THEN 1.1 ELSE 0 END
+      )`,
+      'search_rank'
+    );
+
+    // Add exact match parameter for better ranking
+    query.setParameter('exactMatch', `${search}`);
   }
 }

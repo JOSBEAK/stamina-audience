@@ -7,6 +7,7 @@ export default {
   },
   moduleFileExtensions: ['ts', 'js', 'html'],
   coverageDirectory: '../../coverage/apps/audience-management-service',
+  coverageReporters: ['text', 'html'],
   testMatch: ['<rootDir>/src/**/?(*.)+(spec|test).[jt]s'],
   moduleNameMapper: {
     '^@stamina-project/(.*)$': '<rootDir>/../../libs/$1/src',

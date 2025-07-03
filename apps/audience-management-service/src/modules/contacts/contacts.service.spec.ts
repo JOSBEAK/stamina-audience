@@ -249,6 +249,113 @@ describe('ContactsService', () => {
       expect(result.data).toHaveLength(0);
       expect(result.total).toBe(0);
     });
+
+    it('should work without search parameter', async () => {
+      const paramsNoSearch = new ContactListParamsDto();
+      Object.assign(paramsNoSearch, {
+        page: 1,
+        limit: 10,
+        role: 'Developer',
+      });
+
+      mockQueryBuilder.getManyAndCount.mockResolvedValue([[], 0]);
+
+      await service.findAll(paramsNoSearch);
+
+      // Verify that search-related andWhere is not called
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
+        'contact.role = :role',
+        { role: 'Developer' }
+      );
+      // But search filter should not be applied
+      const calls = mockQueryBuilder.andWhere.mock.calls;
+      const searchCall = calls.find(
+        (call) => call[0] && call[0].includes('search_vector')
+      );
+      expect(searchCall).toBeUndefined();
+    });
+
+    it('should apply all business filters when provided', async () => {
+      const allFiltersParams = new ContactListParamsDto();
+      Object.assign(allFiltersParams, {
+        page: 1,
+        limit: 10,
+        role: 'Developer',
+        company: 'Tech Corp',
+        location: 'New York',
+        industry: 'Technology',
+      });
+
+      mockQueryBuilder.getManyAndCount.mockResolvedValue([[], 0]);
+
+      await service.findAll(allFiltersParams);
+
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
+        'contact.role = :role',
+        { role: 'Developer' }
+      );
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
+        'contact.company = :company',
+        { company: 'Tech Corp' }
+      );
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
+        'contact.location = :location',
+        { location: 'New York' }
+      );
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
+        'contact.industry = :industry',
+        { industry: 'Technology' }
+      );
+    });
+
+    it('should work with no filters at all', async () => {
+      const noFiltersParams = new ContactListParamsDto();
+      Object.assign(noFiltersParams, {
+        page: 1,
+        limit: 10,
+      });
+
+      mockQueryBuilder.getManyAndCount.mockResolvedValue([[], 0]);
+
+      await service.findAll(noFiltersParams);
+
+      // Only pagination should be applied, no business filters
+      expect(mockContactRepository.createQueryBuilder).toHaveBeenCalledWith(
+        'contact'
+      );
+    });
+
+    it('should apply partial business filters', async () => {
+      const partialFiltersParams = new ContactListParamsDto();
+      Object.assign(partialFiltersParams, {
+        page: 1,
+        limit: 10,
+        company: 'Tech Corp',
+        industry: 'Technology',
+      });
+
+      mockQueryBuilder.getManyAndCount.mockResolvedValue([[], 0]);
+
+      await service.findAll(partialFiltersParams);
+
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
+        'contact.company = :company',
+        { company: 'Tech Corp' }
+      );
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
+        'contact.industry = :industry',
+        { industry: 'Technology' }
+      );
+
+      // Role and location should not be called
+      const calls = mockQueryBuilder.andWhere.mock.calls;
+      const roleCall = calls.find((call) => call[0] === 'contact.role = :role');
+      const locationCall = calls.find(
+        (call) => call[0] === 'contact.location = :location'
+      );
+      expect(roleCall).toBeUndefined();
+      expect(locationCall).toBeUndefined();
+    });
   });
 
   describe('findOne', () => {
@@ -342,10 +449,50 @@ describe('ContactsService', () => {
       );
     });
 
+    it('should use default parameters when not provided', async () => {
+      const companies = [{ attribute: 'Tech Corp' }];
+      mockQueryBuilder.getRawMany.mockResolvedValue(companies);
+
+      // Call without limit and page parameters to test defaults
+      const result = await service.searchAttributes('company', 'tech');
+
+      expect(result).toEqual(['Tech Corp']);
+      expect(mockQueryBuilder.limit).toHaveBeenCalledWith(5); // default limit
+      expect(mockQueryBuilder.offset).toHaveBeenCalledWith(0); // default page 1 -> offset 0
+    });
+
+    it('should handle custom limit and page parameters', async () => {
+      const companies = [{ attribute: 'Tech Corp' }];
+      mockQueryBuilder.getRawMany.mockResolvedValue(companies);
+
+      const result = await service.searchAttributes('company', 'tech', 10, 2);
+
+      expect(result).toEqual(['Tech Corp']);
+      expect(mockQueryBuilder.limit).toHaveBeenCalledWith(10);
+      expect(mockQueryBuilder.offset).toHaveBeenCalledWith(10); // page 2 with limit 10
+    });
+
     it('should throw error for invalid attribute', async () => {
       await expect(service.searchAttributes('invalid', 'test')).rejects.toThrow(
         'Invalid attribute'
       );
+    });
+
+    it('should search all valid attributes', async () => {
+      const validAttributes = ['company', 'location', 'industry', 'role'];
+
+      for (const attribute of validAttributes) {
+        mockQueryBuilder.getRawMany.mockResolvedValue([]);
+
+        await expect(
+          service.searchAttributes(attribute, 'test')
+        ).resolves.not.toThrow();
+
+        expect(mockQueryBuilder.where).toHaveBeenCalledWith(
+          `contact.${attribute} ILIKE :search`,
+          { search: 'test%' }
+        );
+      }
     });
   });
 
@@ -416,6 +563,15 @@ describe('ContactsService', () => {
       expect(mockContactRepository.createQueryBuilder).toHaveBeenCalled();
       expect(mockQueryBuilder.delete).toHaveBeenCalled();
       expect(mockQueryBuilder.execute).toHaveBeenCalled();
+    });
+
+    it('should log successful batch deletion', async () => {
+      const logSpy = jest.spyOn(service['logger'], 'log');
+      mockQueryBuilder.execute.mockResolvedValue({ affected: 2 });
+
+      await service.removeBatch(contactIds);
+
+      expect(logSpy).toHaveBeenCalledWith('Batch deleted 2 contacts.');
     });
 
     it('should throw NotFoundException when no contacts found', async () => {

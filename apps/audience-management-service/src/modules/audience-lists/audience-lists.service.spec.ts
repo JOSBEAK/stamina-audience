@@ -258,6 +258,176 @@ describe('AudienceListsService', () => {
         'ASC'
       );
     });
+
+    it('should work without search parameter', async () => {
+      const noSearchParams = new AudienceListParamsDto();
+      Object.assign(noSearchParams, {
+        page: 1,
+        limit: 10,
+        folder: 'test-folder',
+      });
+
+      const entities = [];
+      const raw = [];
+
+      mockQueryBuilder.getCount.mockResolvedValue(0);
+      mockQueryBuilder.getRawAndEntities.mockResolvedValue({ entities, raw });
+
+      await service.findAll(noSearchParams);
+
+      // Verify search filter is not applied
+      const calls = mockQueryBuilder.andWhere.mock.calls;
+      const searchCall = calls.find(
+        (call) => call[0] && call[0].includes('ILIKE :search')
+      );
+      expect(searchCall).toBeUndefined();
+    });
+
+    it('should handle null folder parameter (else branch)', async () => {
+      const nullFolderParams = new AudienceListParamsDto();
+      Object.assign(nullFolderParams, {
+        page: 1,
+        limit: 10,
+        folder: null,
+      });
+
+      const entities = [];
+      const raw = [];
+
+      mockQueryBuilder.getCount.mockResolvedValue(0);
+      mockQueryBuilder.getRawAndEntities.mockResolvedValue({ entities, raw });
+
+      await service.findAll(nullFolderParams);
+
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
+        'audienceList.folder IS NULL'
+      );
+    });
+
+    it('should handle undefined folder parameter (else branch)', async () => {
+      const undefinedFolderParams = new AudienceListParamsDto();
+      Object.assign(undefinedFolderParams, {
+        page: 1,
+        limit: 10,
+        // folder is undefined
+      });
+
+      const entities = [];
+      const raw = [];
+
+      mockQueryBuilder.getCount.mockResolvedValue(0);
+      mockQueryBuilder.getRawAndEntities.mockResolvedValue({ entities, raw });
+
+      await service.findAll(undefinedFolderParams);
+
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
+        'audienceList.folder IS NULL'
+      );
+    });
+
+    it('should use default sorting when no sort parameter provided', async () => {
+      const noSortParams = new AudienceListParamsDto();
+      Object.assign(noSortParams, {
+        page: 1,
+        limit: 10,
+      });
+
+      const entities = [];
+      const raw = [];
+
+      mockQueryBuilder.getCount.mockResolvedValue(0);
+      mockQueryBuilder.getRawAndEntities.mockResolvedValue({ entities, raw });
+
+      await service.findAll(noSortParams);
+
+      expect(mockQueryBuilder.orderBy).toHaveBeenCalledWith(
+        'audienceList.createdAt',
+        'DESC'
+      );
+    });
+
+    it('should use default sorting when invalid sort field provided', async () => {
+      const invalidSortParams = new AudienceListParamsDto();
+      Object.assign(invalidSortParams, {
+        page: 1,
+        limit: 10,
+        sort: 'invalidField:asc',
+      });
+
+      const entities = [];
+      const raw = [];
+
+      mockQueryBuilder.getCount.mockResolvedValue(0);
+      mockQueryBuilder.getRawAndEntities.mockResolvedValue({ entities, raw });
+
+      await service.findAll(invalidSortParams);
+
+      // Should fall back to default sorting
+      expect(mockQueryBuilder.orderBy).toHaveBeenCalledWith(
+        'audienceList.createdAt',
+        'DESC'
+      );
+    });
+
+    it('should handle special sort fields (memberCount, usedInCount)', async () => {
+      const specialSortParams = new AudienceListParamsDto();
+      Object.assign(specialSortParams, {
+        page: 1,
+        limit: 10,
+        sort: 'memberCount:desc',
+      });
+
+      const entities = [];
+      const raw = [];
+
+      mockQueryBuilder.getCount.mockResolvedValue(0);
+      mockQueryBuilder.getRawAndEntities.mockResolvedValue({ entities, raw });
+
+      await service.findAll(specialSortParams);
+
+      expect(mockQueryBuilder.orderBy).toHaveBeenCalledWith(
+        '"memberCount"',
+        'DESC'
+      );
+    });
+
+    it('should handle null rawAudienceList in data mapping', async () => {
+      const entities = [mockAudienceList];
+      const raw = []; // Empty raw data
+
+      mockQueryBuilder.getCount.mockResolvedValue(1);
+      mockQueryBuilder.getRawAndEntities.mockResolvedValue({ entities, raw });
+
+      const result = await service.findAll(params);
+
+      expect(result.data[0]).toEqual({
+        ...mockAudienceList,
+        memberCount: 0, // Should default to 0
+        usedInCount: 0, // Should default to 0
+      });
+    });
+
+    it('should handle mismatched raw and entities data', async () => {
+      const entities = [mockAudienceList];
+      const raw = [
+        {
+          audienceList_id: 'different-uuid',
+          memberCount: '5',
+          usedInCount: '2',
+        },
+      ];
+
+      mockQueryBuilder.getCount.mockResolvedValue(1);
+      mockQueryBuilder.getRawAndEntities.mockResolvedValue({ entities, raw });
+
+      const result = await service.findAll(params);
+
+      expect(result.data[0]).toEqual({
+        ...mockAudienceList,
+        memberCount: 0, // Should default to 0 when no matching raw data
+        usedInCount: 0, // Should default to 0 when no matching raw data
+      });
+    });
   });
 
   describe('findOne', () => {
@@ -344,6 +514,18 @@ describe('AudienceListsService', () => {
       await service.removeContactsFromAudienceList(audienceListId, []);
 
       expect(mockAudienceListMemberRepository.delete).not.toHaveBeenCalled();
+    });
+
+    it('should return early when contactIds array is empty', async () => {
+      const deleteSpy = jest.spyOn(mockAudienceListMemberRepository, 'delete');
+
+      const result = await service.removeContactsFromAudienceList(
+        audienceListId,
+        []
+      );
+
+      expect(result).toBeUndefined();
+      expect(deleteSpy).not.toHaveBeenCalled();
     });
   });
 
@@ -499,6 +681,386 @@ describe('AudienceListsService', () => {
         'contact.role = :role',
         { role: 'Developer' }
       );
+    });
+
+    it('should work without search parameter', async () => {
+      const noSearchParams = new ContactListParamsDto();
+      Object.assign(noSearchParams, {
+        page: 1,
+        limit: 10,
+        role: 'Developer',
+      });
+
+      mockQueryBuilder.getManyAndCount.mockResolvedValue([[], 0]);
+
+      await service.findAudienceListContacts(audienceListId, noSearchParams);
+
+      // Verify search filter is not applied
+      const calls = mockQueryBuilder.andWhere.mock.calls;
+      const searchCall = calls.find(
+        (call) => call[0] && call[0].includes('search_vector')
+      );
+      expect(searchCall).toBeUndefined();
+    });
+
+    it('should work without any filters', async () => {
+      const noFiltersParams = new ContactListParamsDto();
+      Object.assign(noFiltersParams, {
+        page: 1,
+        limit: 10,
+      });
+
+      mockQueryBuilder.getManyAndCount.mockResolvedValue([[], 0]);
+
+      await service.findAudienceListContacts(audienceListId, noFiltersParams);
+
+      // Should only have base where conditions and no additional filters
+      expect(mockQueryBuilder.where).toHaveBeenCalledWith(
+        'audienceListMember.audienceListId = :audienceListId',
+        { audienceListId }
+      );
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
+        'contact.locationId = :locationId',
+        { locationId: 'test-location-id' }
+      );
+    });
+
+    it('should apply all filters when provided', async () => {
+      const allFiltersParams = new ContactListParamsDto();
+      Object.assign(allFiltersParams, {
+        page: 1,
+        limit: 10,
+        search: 'john',
+        role: 'Developer',
+        company: 'Tech Corp',
+        location: 'New York',
+        industry: 'Technology',
+      });
+
+      mockQueryBuilder.getManyAndCount.mockResolvedValue([[], 0]);
+
+      await service.findAudienceListContacts(audienceListId, allFiltersParams);
+
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
+        'contact.role = :role',
+        { role: 'Developer' }
+      );
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
+        'contact.company = :company',
+        { company: 'Tech Corp' }
+      );
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
+        'contact.location = :location',
+        { location: 'New York' }
+      );
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
+        'contact.industry = :industry',
+        { industry: 'Technology' }
+      );
+    });
+
+    it('should work without sort parameter', async () => {
+      const noSortParams = new ContactListParamsDto();
+      Object.assign(noSortParams, {
+        page: 1,
+        limit: 10,
+      });
+
+      mockQueryBuilder.getManyAndCount.mockResolvedValue([[], 0]);
+
+      await service.findAudienceListContacts(audienceListId, noSortParams);
+
+      // Since the method has default sort = 'createdAt:desc', orderBy should be called
+      expect(mockQueryBuilder.orderBy).toHaveBeenCalledWith(
+        'contact.createdAt',
+        'DESC'
+      );
+    });
+
+    it('should handle regular field sorting vs special field sorting', async () => {
+      // Test for line 109 - the ternary operator in findAll that handles special sorting fields
+      const regularSortParams = new AudienceListParamsDto();
+      Object.assign(regularSortParams, {
+        page: 1,
+        limit: 10,
+        sort: 'name:asc', // Regular field that should use audienceList.name
+      });
+
+      const entities = [];
+      const raw = [];
+
+      mockQueryBuilder.getCount.mockResolvedValue(0);
+      mockQueryBuilder.getRawAndEntities.mockResolvedValue({ entities, raw });
+
+      await service.findAll(regularSortParams);
+
+      // Should use audienceList.name (not quoted)
+      expect(mockQueryBuilder.orderBy).toHaveBeenCalledWith(
+        'audienceList.name',
+        'ASC'
+      );
+
+      // Now test the other branch with special fields
+      jest.clearAllMocks();
+
+      const specialSortParams = new AudienceListParamsDto();
+      Object.assign(specialSortParams, {
+        page: 1,
+        limit: 10,
+        sort: 'usedInCount:desc', // Special field that should be quoted
+      });
+
+      mockQueryBuilder.getCount.mockResolvedValue(0);
+      mockQueryBuilder.getRawAndEntities.mockResolvedValue({ entities, raw });
+
+      await service.findAll(specialSortParams);
+
+      // Should use quoted "usedInCount"
+      expect(mockQueryBuilder.orderBy).toHaveBeenCalledWith(
+        '"usedInCount"',
+        'DESC'
+      );
+    });
+
+    it('should test both branches of folder conditional (line 74)', async () => {
+      // Test the if branch (when folder is provided)
+      const withFolderParams = new AudienceListParamsDto();
+      Object.assign(withFolderParams, {
+        page: 1,
+        limit: 10,
+        folder: 'test-folder',
+      });
+
+      const entities = [];
+      const raw = [];
+
+      mockQueryBuilder.getCount.mockResolvedValue(0);
+      mockQueryBuilder.getRawAndEntities.mockResolvedValue({ entities, raw });
+
+      await service.findAll(withFolderParams);
+
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
+        'audienceList.folder = :folder',
+        { folder: 'test-folder' }
+      );
+
+      // Clear mocks and test the else branch
+      jest.clearAllMocks();
+
+      const withoutFolderParams = new AudienceListParamsDto();
+      Object.assign(withoutFolderParams, {
+        page: 1,
+        limit: 10,
+        // No folder parameter
+      });
+
+      mockQueryBuilder.getCount.mockResolvedValue(0);
+      mockQueryBuilder.getRawAndEntities.mockResolvedValue({ entities, raw });
+
+      await service.findAll(withoutFolderParams);
+
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
+        'audienceList.folder IS NULL'
+      );
+    });
+
+    it('should test ternary operators in data mapping for memberCount and usedInCount', async () => {
+      // Test when rawAudienceList exists (first branch of ternary)
+      const entities = [mockAudienceList];
+      const raw = [
+        {
+          audienceList_id: 'test-uuid',
+          memberCount: '10',
+          usedInCount: '5',
+        },
+      ];
+
+      mockQueryBuilder.getCount.mockResolvedValue(1);
+      mockQueryBuilder.getRawAndEntities.mockResolvedValue({ entities, raw });
+
+      const result = await service.findAll(params);
+
+      expect(result.data[0]).toEqual({
+        ...mockAudienceList,
+        memberCount: 10, // Should parse the string to int
+        usedInCount: 5, // Should parse the string to int
+      });
+
+      // Test when rawAudienceList doesn't exist (second branch of ternary)
+      jest.clearAllMocks();
+
+      const entitiesNoRaw = [mockAudienceList];
+      const rawNoMatch = []; // No matching raw data
+
+      mockQueryBuilder.getCount.mockResolvedValue(1);
+      mockQueryBuilder.getRawAndEntities.mockResolvedValue({
+        entities: entitiesNoRaw,
+        raw: rawNoMatch,
+      });
+
+      const resultNoRaw = await service.findAll(params);
+
+      expect(resultNoRaw.data[0]).toEqual({
+        ...mockAudienceList,
+        memberCount: 0, // Should default to 0
+        usedInCount: 0, // Should default to 0
+      });
+    });
+
+    it('should test the exact else clause on line 109 when sort is undefined', async () => {
+      // Test the exact else clause on line 109 - when sort is completely undefined
+      const noSortParams = new AudienceListParamsDto();
+      Object.assign(noSortParams, {
+        page: 1,
+        limit: 10,
+        // sort is intentionally undefined to trigger line 109
+      });
+
+      const entities = [];
+      const raw = [];
+
+      mockQueryBuilder.getCount.mockResolvedValue(0);
+      mockQueryBuilder.getRawAndEntities.mockResolvedValue({ entities, raw });
+
+      await service.findAll(noSortParams);
+
+      // This should trigger the else clause on line 109: query.orderBy('audienceList.createdAt', 'DESC');
+      expect(mockQueryBuilder.orderBy).toHaveBeenCalledWith(
+        'audienceList.createdAt',
+        'DESC'
+      );
+    });
+
+    it('should test line 74 - subquery memberCount execution path', async () => {
+      // Test that ensures the subquery on line 74 gets executed
+      // This tests the specific addSelect subquery path
+      const paramsForSubquery = new AudienceListParamsDto();
+      Object.assign(paramsForSubquery, {
+        page: 1,
+        limit: 10,
+      });
+
+      const entities = [mockAudienceList];
+      const raw = [
+        {
+          audienceList_id: 'test-uuid',
+          memberCount: '3', // This should trigger the subquery path
+          usedInCount: '1',
+        },
+      ];
+
+      mockQueryBuilder.getCount.mockResolvedValue(1);
+      mockQueryBuilder.getRawAndEntities.mockResolvedValue({ entities, raw });
+
+      const result = await service.findAll(paramsForSubquery);
+
+      // Verify the subquery result is processed correctly
+      expect(result.data[0].memberCount).toBe(3);
+      expect(
+        mockAudienceListRepository.createQueryBuilder
+      ).toHaveBeenCalledWith('audienceList');
+      expect(mockQueryBuilder.addSelect).toHaveBeenCalled();
+    });
+
+    it('should test null sort parameter to trigger line 109', async () => {
+      // Test specifically with null sort to trigger the else clause
+      const nullSortParams = new AudienceListParamsDto();
+      Object.assign(nullSortParams, {
+        page: 1,
+        limit: 10,
+        sort: null, // Explicitly null to trigger else branch
+      });
+
+      const entities = [];
+      const raw = [];
+
+      mockQueryBuilder.getCount.mockResolvedValue(0);
+      mockQueryBuilder.getRawAndEntities.mockResolvedValue({ entities, raw });
+
+      await service.findAll(nullSortParams);
+
+      // Should trigger line 109: query.orderBy('audienceList.createdAt', 'DESC');
+      expect(mockQueryBuilder.orderBy).toHaveBeenCalledWith(
+        'audienceList.createdAt',
+        'DESC'
+      );
+    });
+
+    it('should test empty string sort parameter to trigger line 109', async () => {
+      // Test with empty string sort to trigger the else clause
+      const emptySortParams = new AudienceListParamsDto();
+      Object.assign(emptySortParams, {
+        page: 1,
+        limit: 10,
+        sort: '', // Empty string to trigger else branch
+      });
+
+      const entities = [];
+      const raw = [];
+
+      mockQueryBuilder.getCount.mockResolvedValue(0);
+      mockQueryBuilder.getRawAndEntities.mockResolvedValue({ entities, raw });
+
+      await service.findAll(emptySortParams);
+
+      // Should trigger line 109: query.orderBy('audienceList.createdAt', 'DESC');
+      expect(mockQueryBuilder.orderBy).toHaveBeenCalledWith(
+        'audienceList.createdAt',
+        'DESC'
+      );
+    });
+
+    it('should apply sorting when sort parameter provided', async () => {
+      const sortParams = new ContactListParamsDto();
+      Object.assign(sortParams, {
+        page: 1,
+        limit: 10,
+        sort: 'name:asc',
+      });
+
+      mockQueryBuilder.getManyAndCount.mockResolvedValue([[], 0]);
+
+      await service.findAudienceListContacts(audienceListId, sortParams);
+
+      expect(mockQueryBuilder.orderBy).toHaveBeenCalledWith(
+        'contact.name',
+        'ASC'
+      );
+    });
+
+    it('should apply partial filters', async () => {
+      const partialFiltersParams = new ContactListParamsDto();
+      Object.assign(partialFiltersParams, {
+        page: 1,
+        limit: 10,
+        company: 'Tech Corp',
+        industry: 'Technology',
+      });
+
+      mockQueryBuilder.getManyAndCount.mockResolvedValue([[], 0]);
+
+      await service.findAudienceListContacts(
+        audienceListId,
+        partialFiltersParams
+      );
+
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
+        'contact.company = :company',
+        { company: 'Tech Corp' }
+      );
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
+        'contact.industry = :industry',
+        { industry: 'Technology' }
+      );
+
+      // Role and location should not be called
+      const calls = mockQueryBuilder.andWhere.mock.calls;
+      const roleCall = calls.find((call) => call[0] === 'contact.role = :role');
+      const locationCall = calls.find(
+        (call) => call[0] === 'contact.location = :location'
+      );
+      expect(roleCall).toBeUndefined();
+      expect(locationCall).toBeUndefined();
     });
   });
 });

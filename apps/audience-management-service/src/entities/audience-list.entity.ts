@@ -9,9 +9,11 @@ export enum AudienceListType {
 
 @Entity('audience_lists')
 export class AudienceList extends BaseEntity {
+  @Index() // Adding index for sorting and search performance
   @Column()
   name: string;
 
+  @Index() // Adding index for filtering and sorting by list type
   @Column({
     type: 'enum',
     enum: AudienceListType,
@@ -40,9 +42,11 @@ export class AudienceList extends BaseEntity {
   @OneToMany(() => AudienceListMember, (member) => member.audienceList)
   members: AudienceListMember[];
 
+  @Index() // Adding index for sorting performance
   @Column({ name: 'used_in_count', type: 'int', default: 0 })
   usedInCount: number;
 
+  @Index() // Adding index for folder filtering (exact match and IS NULL queries)
   @Column({ nullable: true })
   folder: string;
 

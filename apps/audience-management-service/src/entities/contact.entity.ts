@@ -10,6 +10,7 @@ import { BaseEntity } from './base.entity';
 export class Contact extends BaseEntity {
   // --- Fields that MUST be non-nullable, per your instruction ---
 
+  @Index() // Adding index for sorting performance
   @Column({ type: 'varchar', length: 255 })
   name: string; // Renamed from 'firstName' from your schema
 
@@ -21,6 +22,7 @@ export class Contact extends BaseEntity {
   @Column({ type: 'varchar', length: 255 })
   role: string; // Renamed from 'title'
 
+  @Index() // Adding index for sorting and filtering performance
   @Column({ type: 'varchar' })
   location: string; // Made non-nullable
 
