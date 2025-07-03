@@ -13,13 +13,6 @@ CLOUDFLARE_BUCKET_NAME=your-bucket-name
 CLOUDFLARE_R2_ACCESS_KEY_ID=your-access-key
 CLOUDFLARE_R2_SECRET_ACCESS_KEY=your-secret-key
 CLOUDFLARE_R2_ASSETS_URL=https://pub-domain.r2.dev
-
-# AWS S3 Configuration  
-AWS_REGION=us-east-1
-AWS_BUCKET_NAME=your-bucket-name
-AWS_ACCESS_KEY_ID=your-access-key
-AWS_SECRET_ACCESS_KEY=your-secret-key
-AWS_S3_PUBLIC_URL=https://your-bucket.s3.amazonaws.com
 ```
 
 ### Module Registration Examples
@@ -76,14 +69,15 @@ import { FeatureService } from './feature.service';
 @Module({
   imports: [
     UploadsModule.forFeature({
-      provider: 'aws-s3',
-      region: 'us-east-1',
+      provider: 'cloudflare-r2',
+      region: 'auto',
       bucket: 'my-feature-bucket',
       credentials: {
-        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+        accessKeyId: process.env.CLOUDFLARE_R2_ACCESS_KEY_ID,
+        secretAccessKey: process.env.CLOUDFLARE_R2_SECRET_ACCESS_KEY,
       },
-      publicUrlBase: 'https://my-feature-bucket.s3.amazonaws.com',
+      endpoint: `https://${process.env.CLOUDFLARE_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+      publicUrlBase: process.env.CLOUDFLARE_R2_ASSETS_URL,
     }),
   ],
   providers: [FeatureService],

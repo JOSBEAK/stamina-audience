@@ -87,16 +87,6 @@ export class ContactsController {
     return this.contactsService.createBatch(createContactDtos);
   }
 
-  @Post('upload')
-  @ApiOperation({ summary: 'Upload contacts via CSV' })
-  @ApiResponse({
-    status: 202,
-    description: 'The CSV upload process has been initiated.',
-  })
-  uploadCsv() {
-    // This will be handled by the service, placeholder for now
-    return this.contactsService.uploadCsv();
-  }
 
   @Post('process-csv')
   @HttpCode(202)

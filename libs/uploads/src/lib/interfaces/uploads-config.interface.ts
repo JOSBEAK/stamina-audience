@@ -44,28 +44,12 @@ export interface UploadsConfig {
 }
 
 /**
- * AWS S3 specific configuration
- */
-export interface S3Config extends UploadsConfig {
-  provider: 'aws-s3';
-}
-
-/**
  * Cloudflare R2 specific configuration
  */
 export interface R2Config extends UploadsConfig {
   provider: 'cloudflare-r2';
   /** Cloudflare account ID */
   accountId: string;
-}
-
-/**
- * Google Cloud Storage specific configuration
- */
-export interface GCPConfig extends UploadsConfig {
-  provider: 'gcp-storage';
-  /** GCP project ID */
-  projectId: string;
 }
 
 /**

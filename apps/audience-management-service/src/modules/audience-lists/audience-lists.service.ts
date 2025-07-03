@@ -13,9 +13,8 @@ import { AudienceListMember } from '../../entities/audience-list-member.entity';
 import { Contact } from '../../entities/contact.entity';
 import { AudienceListParamsDto } from './dto/audience-list-params.dto';
 import { ContactListParamsDto } from '../contacts/dto/contact-list-params.dto';
-import { PaginatedResponseDto, QueryUtils } from '@stamina-project/common';
+import { PaginatedResponseDto } from '@stamina-project/common';
 import { ConfigService } from '@nestjs/config';
-import { IsUUID } from 'class-validator';
 
 @Injectable()
 export class AudienceListsService {

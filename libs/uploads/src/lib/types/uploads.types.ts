@@ -1,7 +1,7 @@
 /**
  * Supported cloud storage providers
  */
-export type StorageProvider = 'aws-s3' | 'cloudflare-r2' | 'gcp-storage';
+export type StorageProvider = 'cloudflare-r2';
 
 /**
  * Upload file types and their MIME types

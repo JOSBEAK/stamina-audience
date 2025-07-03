@@ -1,10 +1,10 @@
 # @stamina-project/uploads
 
-A generic, reusable uploads library for the Stamina Project monorepo. Provides file upload functionality with S3-compatible storage providers.
+A generic, reusable uploads library for the Stamina Project monorepo. Provides file upload functionality with Cloudflare R2 storage.
 
 ## Features
 
-- Multi-provider support (AWS S3, Cloudflare R2, GCP)
+- Cloudflare R2 storage support
 - Secure presigned URLs
 - Type-safe TypeScript
 - NestJS integration

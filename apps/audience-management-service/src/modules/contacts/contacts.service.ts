@@ -5,7 +5,7 @@ import {
   InternalServerErrorException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Brackets, SelectQueryBuilder } from 'typeorm';
+import { Repository, SelectQueryBuilder } from 'typeorm';
 import { SqsService } from '@ssut/nestjs-sqs';
 import { Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -47,25 +47,6 @@ export class ContactsService {
     if (!this.locationId) {
       throw new Error('LOCATION_ID is not set in the environment variables.');
     }
-  }
-
-  async queueCsvProcessing() {
-    this.logger.warn('SQS is disabled. CSV processing is not queued.');
-    // In a real app, you would get file info here
-    /*
-    const messageBody = {
-      fileName: 'contacts.csv',
-      userId: 'user-123',
-    };
-
-    await this.sqsService.send('csv-processing', {
-      id: uuidv4(),
-      body: JSON.stringify(messageBody),
-      delaySeconds: 0,
-    });
-    */
-
-    return { status: 'disabled' };
   }
 
   create(createContactDto: CreateContactDto): Promise<Contact> {
@@ -216,26 +197,7 @@ export class ContactsService {
     this.logger.log(`Batch deleted ${result.affected} contacts.`);
   }
 
-  uploadCsv() {
-    this.logger.warn('CSV upload endpoint is a placeholder.');
-    return { status: 'pending' };
-  }
-
   async queueCsvProcessingJob(job: ProcessCsvJob): Promise<void> {
-    // Check if SQS is configured
-    const csvQueueUrl = this.configService.get<string>(
-      'SQS_CSV_PROCESSING_QUEUE_URL'
-    );
-
-    if (!csvQueueUrl || !this.sqsService) {
-      // Process CSV synchronously when SQS is not configured (development mode)
-      this.logger.warn(
-        'SQS not configured or available. Processing CSV synchronously.'
-      );
-      await this.processCsvDirectly(job);
-      return;
-    }
-
     try {
       this.logger.log(
         `[DEBUG] queueCsvProcessingJob sending fileKey: ${job.fileKey}`
@@ -252,31 +214,6 @@ export class ContactsService {
       throw new InternalServerErrorException(
         'Could not queue CSV processing job.'
       );
-    }
-  }
-
-  /**
-   * Process CSV file directly (synchronously) when SQS is not available
-   * This is used for local development when SQS is not configured
-   */
-  private async processCsvDirectly(job: ProcessCsvJob): Promise<void> {
-    this.logger.log(`Processing CSV file directly: ${job.fileKey}`);
-
-    // We'll import the CsvWorker's processing logic here
-    // For now, let's create a simple implementation
-    try {
-      // This is a placeholder - in a real implementation, you'd either:
-      // 1. Move the CSV processing logic to a shared service
-      // 2. Or import and use the CsvWorker directly
-
-      this.logger.log(
-        'CSV processing completed synchronously (placeholder implementation)'
-      );
-      // TODO: Implement actual CSV processing logic here
-      // This should download the file, parse CSV, create contacts, etc.
-    } catch (error) {
-      this.logger.error('Failed to process CSV directly', error);
-      throw new InternalServerErrorException('Failed to process CSV file.');
     }
   }
 

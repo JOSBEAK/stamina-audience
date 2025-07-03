@@ -13,8 +13,7 @@ import { UploadsConfig } from '../interfaces/uploads-config.interface';
 import { PresignedUrlOptions } from '../types/uploads.types';
 
 /**
- * Generic storage service that works with S3-compatible storage providers
- * Supports AWS S3, Cloudflare R2, and other S3-compatible services
+ * Storage service that works with Cloudflare R2 using S3-compatible API
  */
 @Injectable()
 export class StorageService {
@@ -29,7 +28,7 @@ export class StorageService {
   }
 
   /**
-   * Create and configure S3 client based on the provider
+   * Create and configure S3 client for Cloudflare R2
    *
    * @private
    * @returns Configured S3Client instance
@@ -43,10 +42,8 @@ export class StorageService {
       },
     };
 
-    // Provider-specific configurations
-    if (this.config.provider === 'cloudflare-r2' && this.config.endpoint) {
-      clientConfig.endpoint = this.config.endpoint;
-    } else if (this.config.endpoint) {
+    // Cloudflare R2 endpoint configuration
+    if (this.config.endpoint) {
       clientConfig.endpoint = this.config.endpoint;
     }
 
