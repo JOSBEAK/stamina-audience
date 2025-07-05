@@ -211,9 +211,6 @@ export class Contact extends BaseEntity {
   })
   searchVector: string;
 
-  // @OneToMany(() => BroadcastRecipient, (recipient) => recipient.contact)
-  // broadcastRecipients: BroadcastRecipient[];
-
   @OneToMany(() => AudienceListMember, (member) => member.contact)
   audienceListMembers: AudienceListMember[];
 }

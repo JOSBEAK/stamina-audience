@@ -6,11 +6,6 @@ import { BaseEntity } from './base.entity';
 @Entity('audience_list_members')
 @Index(['contactId', 'audienceListId'], { unique: true })
 export class AudienceListMember extends BaseEntity {
-  // Provide domain-specific getter for better semantics
-  get addedAt(): Date {
-    return this.createdAt;
-  }
-
   @Index()
   @Column({ type: 'uuid', name: 'audience_list_id' })
   audienceListId: string;

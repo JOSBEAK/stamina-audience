@@ -78,9 +78,6 @@ export class AudienceListsService {
       'memberCount'
     );
 
-    // This assumes a 'Broadcast' entity exists and is linked to audience lists.
-    // As the entity is not available, this is a placeholder for the actual implementation.
-    // A real implementation would require the Broadcast entity to be defined.
     query.addSelect('0', 'usedInCount');
 
     if (sort) {
@@ -250,6 +247,7 @@ export class AudienceListsService {
 
       const partialMatchQuery = `%${search}%`;
 
+      //Search Vector for FTS and partial match
       query.andWhere(
         `(
           contact.search_vector @@ to_tsquery('english', :ftsQuery)
@@ -261,6 +259,7 @@ export class AudienceListsService {
       );
     }
 
+    //Filters
     if (role) {
       query.andWhere('contact.role = :role', { role });
     }

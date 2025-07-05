@@ -14,22 +14,10 @@ import { CreateContactDto, UpdateContactDto } from './dto/contact.dto';
 import { ContactListParamsDto } from './dto/contact-list-params.dto';
 import { PaginatedResponseDto, QueryUtils } from '@stamina-project/common';
 
-// interface FindAllParams {
-//   role?: string;
-//   company?: string;
-//   location?: string;
-//   industry?: string;
-//   search?: string;
-//   sort?: string;
-//   take?: number;
-//   skip?: number;
-// }
-
 interface ProcessCsvJob {
   fileKey: string;
   mapping: Record<string, string>;
   audienceListId?: string;
-  // perhaps add userId here in the future
 }
 
 @Injectable()
@@ -72,7 +60,7 @@ export class ContactsService {
     const query = this.contactRepository.createQueryBuilder('contact');
 
     // Apply business-specific filters
-    this.applyBusinessFilters(query, { role, company, location, industry });
+    this.applyFilters(query, { role, company, location, industry });
 
     // Apply advanced search (full-text search + fallback)
     if (search) {
@@ -92,9 +80,6 @@ export class ContactsService {
     ]);
 
     QueryUtils.applyPagination(query, params);
-
-    // A real app would get brandId from auth and add:
-    // query.andWhere('contact.brandId = :brandId', { brandId });
 
     const [data, total] = await query.getManyAndCount();
     return PaginatedResponseDto.create(data, total, params);
@@ -234,7 +219,7 @@ export class ContactsService {
    * @param query - The TypeORM query builder
    * @param filters - Business-specific filter parameters
    */
-  private applyBusinessFilters(
+  private applyFilters(
     query: SelectQueryBuilder<Contact>,
     filters: {
       role?: string;
