@@ -130,22 +130,33 @@ export class ContactsService {
       throw new Error('Invalid attribute');
     }
 
-    // Use more efficient prefix matching for indexed fields
-    const query = this.contactRepository
+    // Simple approach: get distinct values and sort in JavaScript
+    const results = await this.contactRepository
       .createQueryBuilder('contact')
-      .select(`DISTINCT contact.${attribute}`, 'attribute')
+      .select(`DISTINCT contact.${attribute}`, 'value')
       .where(`contact.${attribute} ILIKE :search`, { search: `${search}%` })
       .andWhere('contact.locationId = :locationId', {
         locationId: this.locationId,
       })
-      // Order by length for most relevant results first
-      .orderBy(`LENGTH(contact.${attribute})`, 'ASC')
-      .addOrderBy(`contact.${attribute}`, 'ASC')
-      .limit(limit)
-      .offset((page - 1) * limit);
+      .andWhere(`contact.${attribute} IS NOT NULL`)
+      .andWhere(`contact.${attribute} != ''`)
+      .getRawMany();
 
-    const results = await query.getRawMany();
-    return results.map((r) => r.attribute);
+    // Sort by length first, then alphabetically
+    const sortedResults = results
+      .map((r: any) => r.value)
+      .sort((a: string, b: string) => {
+        if (a.length !== b.length) {
+          return a.length - b.length;
+        }
+        return a.localeCompare(b);
+      });
+
+    // Apply pagination
+    const startIndex = (page - 1) * limit;
+    const endIndex = startIndex + limit;
+
+    return sortedResults.slice(startIndex, endIndex);
   }
 
   async update(
