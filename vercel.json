@@ -1,4 +1,5 @@
 {
+  "name": "stamina-audience-app",
   "buildCommand": "npx nx build audience-management-web",
   "outputDirectory": "dist/apps/audience-management-web",
   "devCommand": "npx nx serve audience-management-web",
