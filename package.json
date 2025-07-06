@@ -3,7 +3,8 @@
   "version": "0.0.0",
   "license": "MIT",
   "scripts": {
-    "build": "npx nx build audience-management-service",
+    "build": "npm run build:backend",
+    "build:backend": "./node_modules/.bin/nx build audience-management-service --skip-nx-cache",
     "start": "node dist/apps/audience-management-service/main.js",
     "migration:run": "ts-node -r tsconfig-paths/register --project apps/audience-management-service/tsconfig.app.json node_modules/typeorm/cli.js -d apps/audience-management-service/src/typeorm.config.ts migration:run",
     "migration:generate": "ts-node -r tsconfig-paths/register --project apps/audience-management-service/tsconfig.app.json node_modules/typeorm/cli.js -d apps/audience-management-service/src/typeorm.config.ts migration:generate"
