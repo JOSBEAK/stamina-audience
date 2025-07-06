@@ -4,7 +4,7 @@ import axios from 'axios';
 // Note: When used in frontend, this will be replaced by Vite with the actual environment variable
 const API_URL =
   import.meta.env.VITE_API_URL ||
-  'https://audience-management-service-besysv2m8.vercel.app/api';
+  'https://audience-management-service.onrender.com/api';
 
 console.log('API_URL configured to:', API_URL);
 
